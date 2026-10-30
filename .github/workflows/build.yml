@@ -863,9 +863,13 @@ jobs:
               }
             }
 
-            $deviceOutput = (& $handy.FullName --list-devices | Out-String)
+            $auditOut = Join-Path $Root 'handy-devices-stdout.log'
+            $auditErr = Join-Path $Root 'handy-devices-stderr.log'
+            $auditProcess = Start-Process -FilePath $handy.FullName -ArgumentList '--list-devices' -WindowStyle Hidden -Wait -PassThru -RedirectStandardOutput $auditOut -RedirectStandardError $auditErr
+            $deviceOutput = Get-Content -LiteralPath $auditOut -Raw
             $deviceOutput | Write-Host
-            if ($LASTEXITCODE -ne 0) {
+            if ($auditProcess.ExitCode -ne 0) {
+              Get-Content -LiteralPath $auditErr | Write-Host
               throw "$Label handy.exe --list-devices failed"
             }
             if ("${{ inputs.target }}" -like "aarch64*" -and $deviceOutput -match "kind=(vulkan|cuda|metal|gpu)") {

@@ -23,9 +23,15 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Intune detection failed after install' }
     $install = Join-Path $env:ProgramFiles 'Handy Core Ultra 355 NPU'
     if (-not (Test-Path -LiteralPath (Join-Path $install 'handy.exe'))) { throw 'Machine installation not found in Program Files' }
-    $modelJson = & (Join-Path $install 'handy.exe') --list-models --json
-    if ($LASTEXITCODE -ne 0) { throw 'Installed app cannot enumerate models' }
-    $model = @($modelJson | ConvertFrom-Json) | Where-Object { $_.id -eq 'openvino-turbo-int8-npu' }
+    # GUI-subsystem executables require an explicit wait before reading redirected stdout.
+    $modelOut = Join-Path $repo 'build/models-stdout.log'
+    $modelErr = Join-Path $repo 'build/models-stderr.log'
+    $modelProcess = Start-Process -FilePath (Join-Path $install 'handy.exe') -ArgumentList '--list-models --json' -WindowStyle Hidden -Wait -PassThru -RedirectStandardOutput $modelOut -RedirectStandardError $modelErr
+    if ($modelProcess.ExitCode -ne 0) {
+        Get-Content -LiteralPath $modelErr | Write-Host
+        throw 'Installed app cannot enumerate models'
+    }
+    $model = @(Get-Content -LiteralPath $modelOut -Raw | ConvertFrom-Json) | Where-Object { $_.id -eq 'openvino-turbo-int8-npu' }
     if (@($model).Count -ne 1 -or -not $model.is_downloaded -or -not $model.is_recommended) { throw 'Installed app cannot resolve the bundled NPU model' }
     $npu = Join-Path $install 'resources/npu'
     $probe = & (Join-Path $npu 'worker/handy-npu-worker.exe') --probe
