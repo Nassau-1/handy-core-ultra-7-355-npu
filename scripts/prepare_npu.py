@@ -67,7 +67,7 @@ def main():
     print(json.dumps(result))
     inventory = []
     for path in sorted(resources.rglob("*")):
-        if path.is_file():
+        if path.is_file() and path != resources / "inventory.json":
             with path.open("rb") as stream:
                 digest = hashlib.file_digest(stream, "sha256").hexdigest()
             inventory.append({"path": path.relative_to(resources).as_posix(),
