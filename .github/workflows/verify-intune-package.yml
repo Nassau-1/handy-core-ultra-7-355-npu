@@ -62,7 +62,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Application/model source differs from the built installer' }
           $assets = @((Get-ChildItem build/installers -Recurse -File | Where-Object { $_.Extension -in '.msi','.exe' }).FullName)
           $assets += @((Get-ChildItem build/intune/output -File).FullName)
-          $hashes = @($assets | ForEach-Object { "$( (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash.ToLowerInvariant() )  $([IO.Path]::GetFileName($_))" })
+          $hashes = @($assets | ForEach-Object { "$( (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash.ToLowerInvariant() )  $([IO.Path]::GetFileName($_).Replace(' ','.'))" })
           $hashes | Set-Content build/SHA256SUMS.txt -Encoding utf8
           $assets += (Resolve-Path build/SHA256SUMS.txt).Path
           $notes = Get-Content packaging/preview-release.md -Raw

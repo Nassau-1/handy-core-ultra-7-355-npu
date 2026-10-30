@@ -23,7 +23,8 @@ the user loads the model and writes only to their LocalAppData cache.
 3. Copy the exact commands from `intune-metadata.json`. Install behavior **System**;
    60-minute install limit, no forced reboot. Return 0 success, 3010 soft reboot,
    1618 retry; 1603 failure. Standard MSI error defaults apply.
-4. Architecture x64. Require supported Windows 11 (target 25H2/build 26200+) and
+4. Architecture x64. The portal offered Windows 11 24H2 as its newest minimum
+   selector; the custom script additionally enforces 25H2/build 26200+. Use
    custom requirement `Require-CoreUltra355.ps1`: 64-bit, SYSTEM, string equals `True`.
 5. Custom detection `Detect.ps1`: 64-bit; success requires exit 0 and stdout.
    Signature enforcement only if scripts have actually been signed.
@@ -42,5 +43,8 @@ supersedence/version detection from the new artifact. Uninstall using the exact
 MSI ProductCode command in metadata. User history and cache remain unless the user
 explicitly removes them. Upstream Handy has a separate identity and is unaffected.
 
-Current tenant upload, assignment and standard-user install are unverified. CI
-installation proves packaging behavior only, not successful tenant delivery.
+On 2026-10-30, catalog upload completed and the saved **Available for enrolled
+devices / All Users** assignment was verified. No Required assignment was created.
+Standard-user installation through Company Portal and real NPU execution remain
+unverified; the target is unavailable. CI proves packaging behavior, not endpoint
+policy acceptance or NPU performance.

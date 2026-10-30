@@ -1,6 +1,6 @@
 # Core Ultra 7 355 NPU — implementation specification
 
-Date: 2026-10-30. Status: implementation in progress.
+Date: 2026-10-30. Status: implemented and packaging verified; real-device validation pending.
 
 Objective: fork Handy with a first-class, bundled Whisper large-v3-turbo INT8
 OpenVINO NPU model and produce a Windows x64 installer suitable for Intune's

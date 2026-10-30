@@ -1,6 +1,6 @@
 # ADR-001 — explicit bundled NPU model and Intune Win32 delivery
 
-Status: accepted for experimental pilot. Date: 2026-10-30.
+Status: accepted for experimental release. Date: 2026-10-30.
 
 The target is a Windows Core Ultra 7 355 and an existing Company Portal catalog.
 Bbrizly's fork supplies an initial Windows OpenVINO pipe integration, but requires

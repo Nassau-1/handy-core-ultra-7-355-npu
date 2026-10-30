@@ -6,7 +6,8 @@ Intune Company Portal package. Based on [Bbrizly's Windows NPU prototype](https:
 
 ## Status — 2026-10-30
 
-Experimental implementation. Build and packaging validation in progress.
+Experimental [Preview 1 release](https://github.com/Nassau-1/handy-core-ultra-7-355-npu/releases/tag/v0.10.0-npu-preview.1).
+Windows build, silent installation, model discovery and uninstall checks passed.
 **Not yet tested on a Core Ultra 7 355.** No latency or accuracy guarantee.
 No Microsoft Store certification or Intel endorsement is implied.
 
