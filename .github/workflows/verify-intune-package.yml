@@ -1,0 +1,45 @@
+name: Verify existing Windows installer for Intune
+on:
+  workflow_dispatch:
+    inputs:
+      source-run:
+        description: Successful installer build run ID (binary reused, not rebuilt)
+        required: true
+        default: '41085509166'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  verify:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Retrieve built installers
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN: ${{ inputs.source-run }}
+        run: |
+          if ($env:SOURCE_RUN -notmatch '^\d+$') { throw 'Expected numeric run ID' }
+          gh run download $env:SOURCE_RUN --repo $env:GITHUB_REPOSITORY --name handy-ultra355-npu-x86_64-pc-windows-msvc --dir build/installers
+          if ($LASTEXITCODE -ne 0) { throw 'Installer download failed' }
+      - name: Build Intune package
+        shell: pwsh
+        run: |
+          $msi = Get-ChildItem build/installers -Recurse -Filter *.msi | Select-Object -First 1
+          ./scripts/package_intune.ps1 -Installer $msi.FullName
+      - name: Verify silent machine install and uninstall
+        shell: pwsh
+        run: ./scripts/test_intune_install.ps1
+      - name: Upload verified Intune package
+        uses: actions/upload-artifact@v7
+        with:
+          name: handy-ultra355-intune
+          path: build/intune/output/*
+          compression-level: 0
+      - name: Preserve installation diagnostic
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: intune-install-diagnostic
+          path: build/*.log

@@ -7,8 +7,18 @@ $key = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\$($meta.produc
 if (Test-Path -LiteralPath $key) { throw 'Test product already installed; refusing to alter an existing install' }
 try {
     $script = Join-Path $repo 'build/intune/source/Install.ps1'
-    $proc = Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$script`"" -WindowStyle Hidden -Wait -PassThru
-    if ($proc.ExitCode -notin @(0,3010)) { throw "Installation failed: $($proc.ExitCode)" }
+    $stdout = Join-Path $repo 'build/install-stdout.log'
+    $stderr = Join-Path $repo 'build/install-stderr.log'
+    $proc = Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$script`"" -WindowStyle Hidden -Wait -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+    if ($proc.ExitCode -notin @(0,3010)) {
+        Get-Content -LiteralPath $stdout,$stderr -ErrorAction SilentlyContinue | Write-Host
+        $msiLog = Join-Path $env:TEMP 'Handy-CoreUltra355-NPU-install.log'
+        if (Test-Path -LiteralPath $msiLog) {
+            Copy-Item -LiteralPath $msiLog -Destination (Join-Path $repo 'build/msi-install.log')
+            Select-String -LiteralPath $msiLog -Pattern 'Return value 3','Error ','error status' -Context 12,3 | Out-String | Write-Host
+        }
+        throw "Installation failed: $($proc.ExitCode)"
+    }
     & (Join-Path $repo 'build/intune/output/Detect.ps1')
     if ($LASTEXITCODE -ne 0) { throw 'Intune detection failed after install' }
     $install = Join-Path $env:ProgramFiles 'Handy Core Ultra 355 NPU'

@@ -50,7 +50,7 @@ $metadata = @{
     uninstallCommand="msiexec.exe /x $code /qn /norestart";
     requirement='Require-CoreUltra355.ps1; 64-bit SYSTEM; string equals True';
     detection='Detect.ps1; 64-bit SYSTEM; success exit + nonempty stdout';
-    assignments='None created by build; pilot Available only after hardware acceptance';
+    assignments='None created by build; owner requested optional All Users Preview with CPU/OS eligibility';
     packageSha256=(Get-FileHash -LiteralPath (Join-Path $output 'Install.intunewin') -Algorithm SHA256).Hash
 }
 $metadata | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $output 'intune-metadata.json') -Encoding utf8
