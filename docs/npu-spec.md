@@ -40,6 +40,8 @@ no-NPU errors, package integrity, installation/removal and resource resolution.
 Actual NPU execution, cold/warm latency, >30-second completeness and repeated
 FR/EN calls require MCI-001; no remote access is available in this session.
 
-Containment: no tenant-wide or mandatory assignment. Separate application ID;
+Distribution update, 2026-10-30: owner explicitly requested optional catalog
+availability to All Users. CPU/OS requirements restrict eligible installation.
+No mandatory assignment. Separate application ID;
 uninstall only this app, retain user history/cache by default. Intune packaging
 does not require weakening Defender, App Control or Windows signing policies.

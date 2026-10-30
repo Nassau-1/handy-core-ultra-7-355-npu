@@ -533,6 +533,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'NPU payload preparation failed' }
 
       - name: Build with Tauri
+        id: tauri-build
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -946,7 +947,7 @@ jobs:
           retention-days: 30
 
       - name: Upload artifacts (Windows)
-        if: inputs.upload-artifacts && contains(inputs.platform, 'windows')
+        if: ${{ !cancelled() && inputs.upload-artifacts && contains(inputs.platform, 'windows') && steps.tauri-build.outcome == 'success' }}
         uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.asset-prefix }}-${{ inputs.target }}

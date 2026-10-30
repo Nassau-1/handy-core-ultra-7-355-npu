@@ -10,15 +10,15 @@ $wi = New-Object -ComObject WindowsInstaller.Installer
 $db = $wi.OpenDatabase($msi,0)
 function Get-MsiProperty([string]$Name) {
     $view = $db.OpenView("SELECT Value FROM Property WHERE Property = '$Name'")
-    $view.Execute()
+    [void]$view.Execute()
     $value = $view.Fetch().StringData(1)
-    $view.Close()
+    [void]$view.Close()
     return $value
 }
 $code = Get-MsiProperty 'ProductCode'
 $version = Get-MsiProperty 'ProductVersion'
 $name = Get-MsiProperty 'ProductName'
-if ($code -notmatch '^\{[A-F0-9-]{36}\}$' -or $name -ne 'Handy Core Ultra 355 NPU') { throw 'Unexpected MSI identity' }
+if ($code -notmatch '^\{[A-F0-9-]{36}\}$' -or $name -ne 'Handy Core Ultra 355 NPU') { throw "Unexpected MSI identity: name=$name; code=$code" }
 Copy-Item -LiteralPath $msi -Destination (Join-Path $source 'HandyNpu.msi')
 Copy-Item -LiteralPath (Join-Path $repo 'packaging\intune\Install.ps1') -Destination $source
 @{ productCode=$code; version=$version; sha256=(Get-FileHash -LiteralPath $msi -Algorithm SHA256).Hash } |

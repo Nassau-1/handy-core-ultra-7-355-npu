@@ -18,5 +18,7 @@ automatic CPU fallback masquerading as NPU success; retraining an already export
 model; public Store submission without a Partner Center identity or certification.
 
 Consequences: larger installer, per-user compilation cache, pinned runtime upkeep,
-unsigned preview policy checks and an unavoidable real-device acceptance gate.
+unsigned preview policy checks and required real-device validation before claiming
+NPU performance or production readiness. The owner subsequently requested optional
+All Users catalog availability for this Preview, with CPU/OS eligibility checks.
 The tenant's identity is not a signing identity and is never embedded in source.

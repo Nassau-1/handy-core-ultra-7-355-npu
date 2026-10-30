@@ -27,9 +27,10 @@ the user loads the model and writes only to their LocalAppData cache.
    custom requirement `Require-CoreUltra355.ps1`: 64-bit, SYSTEM, string equals `True`.
 5. Custom detection `Detect.ps1`: 64-bit; success requires exit 0 and stdout.
    Signature enforcement only if scripts have actually been signed.
-6. Keep assignments empty until the real-device acceptance checklist passes.
-   Then use Available for enrolled devices for the intended pilot user group.
-   Do not use All Users/All Devices or Required/ESP for this preview.
+6. The owner requested availability to **All Users** on 2026-10-30. Use
+   **Available for enrolled devices**, with the CPU/OS requirement enforced.
+   This is an optional Preview, not a Required/ESP deployment. Real-device
+   acceptance is still pending and must be stated in the catalog description.
 
 The requirement checks the CPU/OS, not driver readiness or measured NPU performance.
 Verify Intel NPU driver, WebView2 and App Control acceptance on the pilot.

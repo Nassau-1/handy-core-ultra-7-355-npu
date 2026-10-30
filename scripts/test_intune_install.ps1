@@ -13,6 +13,10 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Intune detection failed after install' }
     $install = Join-Path $env:ProgramFiles 'Handy Core Ultra 355 NPU'
     if (-not (Test-Path -LiteralPath (Join-Path $install 'handy.exe'))) { throw 'Machine installation not found in Program Files' }
+    $modelJson = & (Join-Path $install 'handy.exe') --list-models --json
+    if ($LASTEXITCODE -ne 0) { throw 'Installed app cannot enumerate models' }
+    $model = @($modelJson | ConvertFrom-Json) | Where-Object { $_.id -eq 'openvino-turbo-int8-npu' }
+    if (@($model).Count -ne 1 -or -not $model.is_downloaded -or -not $model.is_recommended) { throw 'Installed app cannot resolve the bundled NPU model' }
     $npu = Join-Path $install 'resources/npu'
     $probe = & (Join-Path $npu 'worker/handy-npu-worker.exe') --probe
     if ($LASTEXITCODE -ne 0) { throw 'Installed NPU runtime cannot load' }
