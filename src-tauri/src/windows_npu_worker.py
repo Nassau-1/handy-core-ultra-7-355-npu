@@ -5,16 +5,18 @@ samples at 16 kHz mono; one UTF-8 JSON response line. No network usage.
 Requires Intel NPU + openvino/openvino-genai and an exported OpenVINO Whisper model.
 """
 import json
-import struct
+import os
 import sys
 
 
 MAX_SAMPLES = 16000 * 600
+PROTOCOL_OUT = None
 
 
 def write_message(payload):
-    sys.stdout.write(json.dumps(payload, ensure_ascii=False) + "\n")
-    sys.stdout.flush()
+    writer = PROTOCOL_OUT or sys.stdout
+    writer.write(json.dumps(payload, ensure_ascii=False) + "\n")
+    writer.flush()
 
 
 def read_exact(reader, count):
@@ -42,23 +44,35 @@ def process_request(pipe, reader, request):
     if not all(-1.01 <= x <= 1.01 for x in samples):
         raise ValueError("PCM samples must be normalized to [-1, 1]")
 
-    kwargs = {"task": "translate" if request.get("translate") else "transcribe"}
+    if request.get("translate"):
+        raise ValueError("Whisper Turbo does not support translation")
+    kwargs = {"task": "transcribe", "return_timestamps": False}
     language = request.get("language")
     if language is not None:
         if (not isinstance(language, str) or len(language) != 6
                 or not language.startswith("<|") or not language.endswith("|>")
-                or not language[2:4].islower() or not language[2:4].isalpha()):
+                or not all("a" <= c <= "z" for c in language[2:4])):
             raise ValueError("invalid Whisper language token")
         kwargs["language"] = language
 
-    result = pipe.generate(samples, **kwargs)
+    result = pipe.generate(list(samples), **kwargs)
     text = result.texts[0] if result.texts else ""
     return {"ok": True, "text": text}
 
 
 def main():
-    if len(sys.argv) != 2:
-        write_message({"ready": False, "error": "Expected OpenVINO model directory"})
+    global PROTOCOL_OUT
+    # Native libraries may print to fd 1. Reserve a separate descriptor for JSON.
+    PROTOCOL_OUT = os.fdopen(os.dup(sys.stdout.fileno()), "w", encoding="utf-8")
+    os.dup2(sys.stderr.fileno(), sys.stdout.fileno())
+    if sys.argv[1:] == ["--probe"]:
+        import openvino
+        import openvino_genai
+        write_message({"devices": openvino.Core().available_devices,
+                       "openvino": openvino.__version__, "genai": openvino_genai.__version__})
+        return 0
+    if len(sys.argv) != 3:
+        write_message({"ready": False, "error": "Expected model and writable cache directories"})
         return 2
     try:
         import openvino
@@ -68,7 +82,8 @@ def main():
         devices = openvino.Core().available_devices
         if "NPU" not in devices:
             raise RuntimeError("Intel NPU is not visible to OpenVINO (available: %s)" % devices)
-        pipe = openvino_genai.WhisperPipeline(sys.argv[1], "NPU")
+        os.makedirs(sys.argv[2], exist_ok=True)
+        pipe = openvino_genai.WhisperPipeline(sys.argv[1], "NPU", CACHE_DIR=sys.argv[2])
         write_message({"ready": True, "device": "NPU"})
     except Exception as exc:
         write_message({"ready": False, "error": str(exc)})

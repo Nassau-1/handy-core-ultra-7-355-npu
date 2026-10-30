@@ -33,6 +33,8 @@ fn main() {
         std::process::exit(handy_app_lib::engine_supervisor::run_worker());
     }
 
+    // Managed distribution: updates are delivered through Intune, never upstream.
+    std::env::set_var("HANDY_DISABLE_UPDATER", "1");
     let cli_args = CliArgs::parse();
     handy_app_lib::run(cli_args)
 }

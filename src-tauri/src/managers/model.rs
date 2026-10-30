@@ -29,6 +29,7 @@ pub enum EngineType {
     /// Voxtral, Qwen3-ASR, Nemotron, …). The architecture is auto-detected from
     /// the file, so this one variant covers the whole transcribe-cpp family.
     TranscribeCpp,
+    OpenVinoNpu,
     Parakeet,
     Moonshine,
     MoonshineStreaming,
@@ -1142,6 +1143,25 @@ impl ModelManager {
             },
         );
 
+        #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
+        {
+            for model in available_models.values_mut() {
+                model.is_recommended = false;
+            }
+            available_models.insert(crate::windows_npu::MODEL_ID.into(), ModelInfo {
+                id: crate::windows_npu::MODEL_ID.into(),
+                name: "Whisper Turbo INT8 · Intel NPU".into(),
+                description: "Bundled Intel NPU model. First load can take 20 minutes; later loads use a local cache. No CPU fallback.".into(),
+                filename: "openvino-turbo-int8-npu".into(), source: ModelSource::Local,
+                size_mb: 828, is_downloaded: false, is_downloading: false, partial_size: 0,
+                is_directory: true, engine_type: EngineType::OpenVinoNpu,
+                accuracy_score: 0.80, speed_score: 0.40,
+                supports_translation: false, is_recommended: true,
+                supported_languages: whisper_languages.clone(), supports_language_selection: true,
+                is_custom: false, supports_streaming: false, supports_language_detection: true,
+            });
+        }
+
         // Seed the bundled offline catalog before the on-disk scans, so a model
         // already in the HF cache dedups onto its richer catalog entry (the scans
         // only insert ids not already present) instead of showing as a bare cache
@@ -1407,6 +1427,11 @@ impl ModelManager {
         let mut vanished_models: Vec<String> = Vec::new();
 
         for model in models.values_mut() {
+            #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
+            if model.id == crate::windows_npu::MODEL_ID {
+                model.is_downloaded = crate::windows_npu::bundled_model_available(&self.app_handle);
+                continue;
+            }
             if let ModelSource::HuggingFace { repo_id, revision } = &model.source {
                 // A models-dir copy counts too: mirror-fallback downloads land
                 // there, and it makes manual drop-ins of catalog files work.
@@ -2418,6 +2443,10 @@ impl ModelManager {
     }
 
     pub fn delete_model(&self, model_id: &str) -> Result<()> {
+        #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
+        if model_id == crate::windows_npu::MODEL_ID {
+            anyhow::bail!("This model is bundled with the application. Uninstall the NPU edition to remove it.");
+        }
         debug!("ModelManager: delete_model called for: {}", model_id);
 
         let model_info = {
@@ -2584,6 +2613,10 @@ impl ModelManager {
     }
 
     pub fn get_model_path(&self, model_id: &str) -> Result<PathBuf> {
+        #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
+        if model_id == crate::windows_npu::MODEL_ID {
+            return crate::windows_npu::model_dir(&self.app_handle).map_err(anyhow::Error::msg);
+        }
         let model_info = self
             .get_model_info(model_id)
             .ok_or_else(|| anyhow::anyhow!("Model not found: {}", model_id))?;

@@ -1,0 +1,106 @@
+{
+  "repo": "OpenVINO/whisper-large-v3-turbo-int8-ov",
+  "revision": "4929ae83ea2d1df59f4b5898a9aab8aa1c29e711",
+  "files": [
+    {
+      "name": "README.md",
+      "size": 5130,
+      "git_blob_sha1": "887129bf12219871de8e2540301dd14c189074c8"
+    },
+    {
+      "name": "added_tokens.json",
+      "size": 34648,
+      "git_blob_sha1": "1b33526d33aaa60d79f78ae8651dae50b730185a"
+    },
+    {
+      "name": "config.json",
+      "size": 1192,
+      "git_blob_sha1": "0079af9ec2f9c4db4825894aa84d11a58384986e"
+    },
+    {
+      "name": "generation_config.json",
+      "size": 3767,
+      "git_blob_sha1": "62d0c663b790efd48dcc55e6d6816579bfb35fea"
+    },
+    {
+      "name": "merges.txt",
+      "size": 493869,
+      "git_blob_sha1": "6038932a2a1f09a66991b1c2adae0d14066fa29e"
+    },
+    {
+      "name": "normalizer.json",
+      "size": 52666,
+      "git_blob_sha1": "dd6ae819ad738ac1a546e9f9282ef325c33b9ea0"
+    },
+    {
+      "name": "openvino_config.json",
+      "size": 622,
+      "git_blob_sha1": "61404c9d6534b6223577201c5fa66a2b46dd339d"
+    },
+    {
+      "name": "openvino_decoder_model.bin",
+      "size": 172534710,
+      "sha256": "c064991cbafc4381567d29972b7013dc24026de9c326d03eb1e6e4fc44aa959f"
+    },
+    {
+      "name": "openvino_decoder_model.xml",
+      "size": 391642,
+      "git_blob_sha1": "08de0c7254fed32a7ab795a700385b469b757ffe"
+    },
+    {
+      "name": "openvino_detokenizer.bin",
+      "size": 736198,
+      "sha256": "f2b3c47825a1089525ff65c0c8e49271e1dee69a401a04fc827ac2de5b7766e4"
+    },
+    {
+      "name": "openvino_detokenizer.xml",
+      "size": 9779,
+      "git_blob_sha1": "0e725b33db491fe7fa65cd1e4789051a3ed2fd55"
+    },
+    {
+      "name": "openvino_encoder_model.bin",
+      "size": 645332592,
+      "sha256": "0590a8f35f96d57801c55990028d917821ac721026e34b7f3f59d7561fc908e6"
+    },
+    {
+      "name": "openvino_encoder_model.xml",
+      "size": 1518660,
+      "git_blob_sha1": "fe98e2d8e2df197058e8edcf97c4cd9d767cc80b"
+    },
+    {
+      "name": "openvino_tokenizer.bin",
+      "size": 1898973,
+      "sha256": "adfa3d9a2920d0f314121270a960ab331ec0f05838544bb8ecaaa422282a6fd4"
+    },
+    {
+      "name": "openvino_tokenizer.xml",
+      "size": 27091,
+      "git_blob_sha1": "4b194dcb8bf562d120a71096cdb5346712dca5b3"
+    },
+    {
+      "name": "preprocessor_config.json",
+      "size": 357,
+      "git_blob_sha1": "3f567c1115178e9fd2e1ef818dca934e22ca0c85"
+    },
+    {
+      "name": "special_tokens_map.json",
+      "size": 2186,
+      "git_blob_sha1": "312bc106291bb51bf2cc1648df070bef963a0639"
+    },
+    {
+      "name": "tokenizer.json",
+      "size": 3930645,
+      "git_blob_sha1": "33c8354828689f5daef89956ad477df739eccd16"
+    },
+    {
+      "name": "tokenizer_config.json",
+      "size": 282873,
+      "git_blob_sha1": "5bff1ae6346582c59a1999bb0e1784b6642540b4"
+    },
+    {
+      "name": "vocab.json",
+      "size": 835528,
+      "git_blob_sha1": "b45bc0e97a5511c917c112c42231cdbf455e200d"
+    }
+  ]
+}

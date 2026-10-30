@@ -45,3 +45,10 @@ result
 
 # Python bytecode (scripts/)
 __pycache__/
+
+# NPU build payloads (released as artifacts, never source)
+/src-tauri/resources/npu/
+/build/
+/.tools/
+/.venv/
+*.intunewin

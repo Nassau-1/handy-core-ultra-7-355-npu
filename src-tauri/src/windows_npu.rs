@@ -1,246 +1,207 @@
-//! Opt-in Windows x64 Intel NPU transcription through OpenVINO GenAI.
-//!
-//! The existing transcribe-cpp worker remains authoritative and is always the
-//! fallback. This feature intentionally never treats DirectML/Vulkan as NPU.
-//! See docs/windows-intel-npu.md for configuration and hardware requirements.
-
-use log::{info, warn};
+//! Bundled, explicit Intel NPU backend. Errors never select a different device.
+use log::info;
 use serde_json::{json, Value};
-use std::io::{BufRead, BufReader, Read, Write};
+use std::io::{BufRead, BufReader, Write};
+use std::os::windows::process::CommandExt;
 use std::path::PathBuf;
-use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
+use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{mpsc, OnceLock};
-use std::thread;
+use std::sync::{mpsc, Mutex, OnceLock};
 use std::time::Duration;
+use tauri::{AppHandle, Manager};
 
-const MAX_AUDIO_SAMPLES: usize = 16_000 * 600; // 10 minutes at 16 kHz.
+pub const MODEL_ID: &str = "openvino-turbo-int8-npu";
+const MAX_AUDIO_SAMPLES: usize = 16_000 * 600;
+const LOAD_TIMEOUT: Duration = Duration::from_secs(20 * 60);
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(120);
+static WORKER: OnceLock<Mutex<Option<Worker>>> = OnceLock::new();
+static READY: AtomicBool = AtomicBool::new(false);
 
-static JOB_SENDER: OnceLock<mpsc::Sender<Job>> = OnceLock::new();
-static DISABLED: AtomicBool = AtomicBool::new(false);
-static WARNED: AtomicBool = AtomicBool::new(false);
-
-struct Config {
-    model_dir: PathBuf,
-    python: PathBuf,
+fn slot() -> &'static Mutex<Option<Worker>> {
+    WORKER.get_or_init(|| Mutex::new(None))
 }
 
-struct Job {
-    samples: Vec<f32>,
-    language: Option<String>,
-    translate: bool,
-    reply: mpsc::Sender<Result<String, String>>,
+pub fn model_dir(app: &AppHandle) -> Result<PathBuf, String> {
+    app.path()
+        .resource_dir()
+        .map(|p| p.join("resources/npu/model"))
+        .map_err(|e| e.to_string())
+}
+
+pub fn bundled_model_available(app: &AppHandle) -> bool {
+    model_dir(app).is_ok_and(|p| {
+        [
+            "openvino_encoder_model.xml",
+            "openvino_encoder_model.bin",
+            "openvino_decoder_model.xml",
+            "openvino_decoder_model.bin",
+            "generation_config.json",
+        ]
+        .iter()
+        .all(|f| p.join(f).is_file())
+    })
+}
+
+pub fn is_ready() -> bool {
+    READY.load(Ordering::Acquire)
 }
 
 struct Worker {
     child: Child,
     stdin: ChildStdin,
-    stdout: BufReader<ChildStdout>,
+    responses: mpsc::Receiver<Result<Value, String>>,
 }
 
 impl Drop for Worker {
     fn drop(&mut self) {
+        READY.store(false, Ordering::Release);
         let _ = self.child.kill();
         let _ = self.child.wait();
     }
 }
 
-fn config_from_env() -> Option<Config> {
-    let model_dir = std::env::var_os("HANDY_OPENVINO_NPU_MODEL_DIR")?;
-    if model_dir.is_empty() {
-        return None;
-    }
-    let python = std::env::var_os("HANDY_OPENVINO_PYTHON")
-        .unwrap_or_else(|| "python".into());
-    Some(Config {
-        model_dir: PathBuf::from(model_dir),
-        python: PathBuf::from(python),
-    })
-}
-
-fn language_token(language: Option<&str>) -> Option<String> {
-    let language = language?;
-    // Only ISO 639-1 codes are accepted as Whisper language tokens. "auto"
-    // means automatic language detection, not the literal token <|auto|>.
-    if language.len() == 2 && language.bytes().all(|b| b.is_ascii_lowercase()) {
-        Some(format!("<|{language}|>"))
-    } else {
-        None
-    }
-}
-
 impl Worker {
-    fn spawn(config: &Config) -> Result<Self, String> {
-        if !config.model_dir.is_dir() {
-            return Err(format!(
-                "OpenVINO model directory does not exist: {}",
-                config.model_dir.display()
-            ));
+    fn spawn(app: &AppHandle) -> Result<Self, String> {
+        let resources = app.path().resource_dir().map_err(|e| e.to_string())?;
+        let exe = resources.join("resources/npu/worker/handy-npu-worker.exe");
+        if !exe.is_file() || !bundled_model_available(app) {
+            return Err(
+                "Bundled NPU runtime/model missing. Repair the installation from Company Portal."
+                    .into(),
+            );
         }
-
-        let mut child = Command::new(&config.python)
-            .arg("-u")
-            .arg("-c")
-            .arg(include_str!("windows_npu_worker.py"))
-            .arg(&config.model_dir)
+        let cache = app
+            .path()
+            .app_local_data_dir()
+            .map_err(|e| e.to_string())?
+            .join("npu-cache/2026.2.1-turbo-4929ae83");
+        std::fs::create_dir_all(&cache).map_err(|e| e.to_string())?;
+        let mut child = Command::new(exe)
+            .args([model_dir(app)?, cache])
+            .creation_flags(0x08000000)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
-            // Python writes structured errors on stdout; suppress native
-            // provider noise so it cannot corrupt the line protocol.
             .stderr(Stdio::null())
             .spawn()
-            .map_err(|e| format!("Could not launch OpenVINO Python: {e}"))?;
-
-        let stdin = child.stdin.take().ok_or("Missing Python stdin")?;
-        let stdout = child.stdout.take().ok_or("Missing Python stdout")?;
-        let mut worker = Self {
+            .map_err(|e| format!("Cannot launch NPU runtime: {e}"))?;
+        let stdin = child.stdin.take().ok_or("Missing worker stdin")?;
+        let stdout = child.stdout.take().ok_or("Missing worker stdout")?;
+        let (tx, rx) = mpsc::channel();
+        std::thread::spawn(move || {
+            for line in BufReader::new(stdout).lines() {
+                let response = line
+                    .map_err(|e| e.to_string())
+                    .and_then(|s| serde_json::from_str(&s).map_err(|e| e.to_string()));
+                if tx.send(response).is_err() {
+                    break;
+                }
+            }
+        });
+        let worker = Self {
             child,
             stdin,
-            stdout: BufReader::new(stdout),
+            responses: rx,
         };
-        let ready = worker.read_response()?;
-        if ready.get("ready").and_then(Value::as_bool) != Some(true) {
+        let ready = worker.response(LOAD_TIMEOUT)?;
+        if ready.get("ready").and_then(Value::as_bool) != Some(true)
+            || ready.get("device").and_then(Value::as_str) != Some("NPU")
+        {
             return Err(format!(
-                "Intel NPU unavailable: {}",
-                ready.get("error").and_then(Value::as_str).unwrap_or("unknown error")
+                "Intel NPU initialization failed: {}",
+                ready
+                    .get("error")
+                    .and_then(Value::as_str)
+                    .unwrap_or("invalid device response")
             ));
         }
-        info!("Handy OpenVINO Whisper NPU worker initialized (device=NPU)");
+        READY.store(true, Ordering::Release);
+        info!("Whisper Turbo INT8 ready: OpenVINO device=NPU (no fallback)");
         Ok(worker)
     }
 
-    fn read_response(&mut self) -> Result<Value, String> {
-        let mut line = String::new();
-        let bytes = self.stdout.read_line(&mut line)
-            .map_err(|e| format!("NPU worker read failure: {e}"))?;
-        if bytes == 0 {
-            return Err("NPU worker exited unexpectedly".to_string());
-        }
-        serde_json::from_str(&line)
-            .map_err(|e| format!("NPU worker returned invalid JSON: {e}"))
+    fn response(&self, timeout: Duration) -> Result<Value, String> {
+        self.responses.recv_timeout(timeout).map_err(|e| {
+            format!("Intel NPU worker timed out or exited ({e}); retry to restart it")
+        })?
     }
 
-    fn transcribe(&mut self, job: &Job) -> Result<String, String> {
-        let header = json!({
-            "samples": job.samples.len(),
-            "language": language_token(job.language.as_deref()),
-            "translate": job.translate
-        });
-        self.stdin.write_all(header.to_string().as_bytes())
-            .and_then(|_| self.stdin.write_all(b"\n"))
-            .map_err(|e| format!("NPU request header write failed: {e}"))?;
-
-        // One binary write (not thousands of small Windows pipe writes).
-        let mut pcm = Vec::with_capacity(job.samples.len() * 4);
-        for &sample in &job.samples {
-            pcm.extend_from_slice(&sample.to_le_bytes());
+    fn transcribe(&mut self, audio: &[f32], language: Option<&str>) -> Result<String, String> {
+        let header = json!({"samples": audio.len(), "language": language_token(language), "translate": false});
+        let mut frame = header.to_string().into_bytes();
+        frame.push(b'\n');
+        for sample in audio {
+            frame.extend_from_slice(&sample.to_le_bytes());
         }
-        self.stdin.write_all(&pcm)
+        self.stdin
+            .write_all(&frame)
             .and_then(|_| self.stdin.flush())
-            .map_err(|e| format!("NPU PCM write failed: {e}"))?;
-
-        let response = self.read_response()?;
+            .map_err(|e| format!("NPU worker write failed: {e}"))?;
+        let response = self.response(REQUEST_TIMEOUT)?;
         if response.get("ok").and_then(Value::as_bool) != Some(true) {
-            return Err(response.get("error")
+            return Err(response
+                .get("error")
                 .and_then(Value::as_str)
-                .unwrap_or("OpenVINO inference failed")
+                .unwrap_or("NPU inference failed")
                 .to_string());
         }
-        response.get("text")
+        response
+            .get("text")
             .and_then(Value::as_str)
-            .map(str::to_string)
-            .ok_or("NPU worker returned no transcript text".into())
+            .map(str::to_owned)
+            .ok_or_else(|| "NPU worker returned no text".into())
     }
 }
 
-fn run_worker(jobs: mpsc::Receiver<Job>, config: Config) {
-    let mut worker: Option<Worker> = None;
-    for job in jobs {
-        if DISABLED.load(Ordering::Acquire) {
-            let _ = job.reply.send(Err("NPU backend disabled for this session".into()));
-            continue;
-        }
-        if worker.is_none() {
-            match Worker::spawn(&config) {
-                Ok(new_worker) => worker = Some(new_worker),
-                Err(error) => {
-                    DISABLED.store(true, Ordering::Release);
-                    let _ = job.reply.send(Err(error));
-                    continue;
-                }
-            }
-        }
-        let result = worker.as_mut().unwrap().transcribe(&job);
-        if result.is_err() {
-            // An error can leave the protocol/model state ambiguous. Never reuse
-            // this worker; the following request starts with a fresh session.
-            worker = None;
-        }
-        let _ = job.reply.send(result);
+fn language_token(language: Option<&str>) -> Option<String> {
+    language
+        .filter(|s| s.len() == 2 && s.bytes().all(|b| b.is_ascii_lowercase()))
+        .map(|s| format!("<|{s}|>"))
+}
+
+pub fn load(app: &AppHandle) -> Result<(), String> {
+    let mut guard = slot().lock().map_err(|_| "NPU worker lock poisoned")?;
+    if guard.is_none() {
+        *guard = Some(Worker::spawn(app)?);
+    }
+    Ok(())
+}
+
+pub fn unload() {
+    if let Ok(mut guard) = slot().lock() {
+        *guard = None;
     }
 }
 
-/// Returns None when not configured, unsupported, timed out, or inference failed.
-/// Caller must then run the existing transcribe-cpp backend with the SAME audio.
-pub fn try_transcribe(audio: &[f32], language: Option<&str>, translate: bool) -> Option<String> {
-    if DISABLED.load(Ordering::Acquire) || audio.is_empty() || audio.len() > MAX_AUDIO_SAMPLES {
-        return None;
+pub fn transcribe(audio: &[f32], language: Option<&str>) -> Result<String, String> {
+    if audio.is_empty() {
+        return Ok(String::new());
     }
-    let config = config_from_env()?;
-    // Do not route invalid samples into the NPU pipeline.
-    if audio.iter().any(|x| !x.is_finite()) {
-        return None;
+    if audio.len() > MAX_AUDIO_SAMPLES || audio.iter().any(|x| !x.is_finite() || x.abs() > 1.01) {
+        return Err("NPU audio must be normalized 16 kHz PCM, at most 10 minutes".into());
     }
-
-    let sender = JOB_SENDER.get_or_init(|| {
-        let (sender, receiver) = mpsc::channel();
-        thread::Builder::new()
-            .name("handy-openvino-npu".into())
-            .spawn(move || run_worker(receiver, config))
-            .expect("Failed to start OpenVINO NPU worker thread");
-        sender
-    });
-    let (reply_tx, reply_rx) = mpsc::channel();
-    let job = Job {
-        samples: audio.to_vec(),
-        language: language.map(str::to_owned),
-        translate,
-        reply: reply_tx,
-    };
-    if sender.send(job).is_err() {
-        DISABLED.store(true, Ordering::Release);
-        return None;
+    let mut guard = slot().lock().map_err(|_| "NPU worker lock poisoned")?;
+    let result = guard
+        .as_mut()
+        .ok_or("NPU model is not loaded")?
+        .transcribe(audio, language);
+    if result.is_err() {
+        *guard = None;
     }
-
-    match reply_rx.recv_timeout(REQUEST_TIMEOUT) {
-        Ok(Ok(text)) => Some(text),
-        Ok(Err(error)) => {
-            if !WARNED.swap(true, Ordering::AcqRel) {
-                warn!("Intel NPU transcription unavailable ({error}); using Handy's original engine");
-            }
-            None
-        }
-        Err(error) => {
-            DISABLED.store(true, Ordering::Release);
-            if !WARNED.swap(true, Ordering::AcqRel) {
-                warn!("Intel NPU worker timed out/disconnected ({error}); disabled for this session, using original engine");
-            }
-            None
-        }
-    }
+    result
 }
 
 #[cfg(test)]
 mod tests {
-    use super::language_token;
-
+    use super::*;
     #[test]
-    fn whisper_languages_are_validated() {
-        assert_eq!(language_token(Some("en")), Some("<|en|>".into()));
-        assert_eq!(language_token(Some("ar")), Some("<|ar|>".into()));
+    fn languages_are_validated() {
+        assert_eq!(language_token(Some("fr")), Some("<|fr|>".into()));
         assert_eq!(language_token(Some("auto")), None);
-        assert_eq!(language_token(Some("eng")), None);
-        assert_eq!(language_token(Some("en\n")), None);
+        assert_eq!(language_token(Some("fr\n")), None);
+    }
+    #[test]
+    fn invalid_audio_is_rejected_before_worker_access() {
+        assert!(transcribe(&[f32::NAN], Some("fr")).is_err());
+        assert!(transcribe(&[2.0], Some("fr")).is_err());
     }
 }

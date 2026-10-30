@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Handy NPU Preview",
-  "version": "0.9.8",
-  "identifier": "com.bbrizly.handy.npu",
+  "productName": "Handy Core Ultra 355 NPU",
+  "version": "0.10.0",
+  "identifier": "com.nassau.handy.ultra355npu",
   "build": {
     "beforeDevCommand": "bun run dev",
     "devUrl": "http://localhost:1420",
@@ -17,9 +17,7 @@
       "assetProtocol": {
         "enable": true,
         "scope": {
-          "allow": [
-            "**"
-          ],
+          "allow": ["**"],
           "requireLiteralLeadingDot": false
         }
       }
@@ -28,10 +26,8 @@
   "bundle": {
     "active": true,
     "createUpdaterArtifacts": false,
-    "targets": "all",
-    "resources": [
-      "resources/**/*"
-    ],
+    "targets": ["nsis", "msi"],
+    "resources": ["resources/**/*"],
     "license": "MIT",
     "icon": [
       "icons/32x32.png",
@@ -49,10 +45,7 @@
     },
     "linux": {
       "deb": {
-        "depends": [
-          "libgtk-layer-shell0",
-          "libopenblas0"
-        ],
+        "depends": ["libgtk-layer-shell0", "libopenblas0"],
         "files": {
           "/usr/lib/Handy": "transcribe-libs"
         }
@@ -79,9 +72,11 @@
     "windows": {
       "nsis": {
         "template": "nsis/installer.nsi",
-        "installerIcon": "icons/icon.ico"
+        "installerIcon": "icons/icon.ico",
+        "installMode": "perMachine"
       }
-    }
+    },
+    "publisher": "Nassau-1"
   },
   "plugins": {
     "updater": {

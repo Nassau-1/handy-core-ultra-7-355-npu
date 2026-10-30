@@ -32,17 +32,27 @@ class WindowsNpuProtocolTests(unittest.TestCase):
         pipe = FakePipe()
         reader = io.BytesIO(struct.pack("<3f", 0.0, 0.125, -0.25))
         result = npu.process_request(
-            pipe, reader, {"samples": 3, "language": "<|en|>", "translate": False}
+            pipe, reader, {"samples": 3, "language": "<|fr|>", "translate": False}
         )
         self.assertEqual(result, {"ok": True, "text": "recognized text"})
         self.assertEqual(pipe.audio, [0.0, 0.125, -0.25])
-        self.assertEqual(pipe.kwargs, {"task": "transcribe", "language": "<|en|>"})
+        self.assertEqual(pipe.kwargs, {"task": "transcribe", "language": "<|fr|>", "return_timestamps": False})
 
     def test_translation(self):
         pipe = FakePipe()
         reader = io.BytesIO(struct.pack("<f", 0.0))
-        npu.process_request(pipe, reader, {"samples": 1, "translate": True})
-        self.assertEqual(pipe.kwargs, {"task": "translate"})
+        with self.assertRaisesRegex(ValueError, "does not support translation"):
+            npu.process_request(pipe, reader, {"samples": 1, "translate": True})
+
+    def test_auto_has_no_language_token(self):
+        pipe = FakePipe()
+        npu.process_request(pipe, io.BytesIO(struct.pack("<f", 0)), {"samples": 1})
+        self.assertNotIn("language", pipe.kwargs)
+
+    def test_reject_nonfinite_audio(self):
+        for value in [float("nan"), float("inf"), -float("inf")]:
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                npu.process_request(FakePipe(), io.BytesIO(struct.pack("<f", value)), {"samples": 1})
 
     def test_reject_truncated_pcm(self):
         with self.assertRaises(EOFError):

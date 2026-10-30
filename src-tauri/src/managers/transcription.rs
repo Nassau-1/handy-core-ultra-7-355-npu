@@ -378,6 +378,10 @@ impl TranscriptionManager {
     }
 
     pub fn is_model_loaded(&self) -> bool {
+        #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
+        if self.get_current_model().as_deref() == Some(crate::windows_npu::MODEL_ID) {
+            return crate::windows_npu::is_ready();
+        }
         // A transcribe-cpp model stays loaded while it is busy, so a batch
         // run or stream in progress never reads as "unloaded".
         self.engine.loaded().is_some() || self.lock_onnx().is_some()
@@ -458,8 +462,8 @@ impl TranscriptionManager {
     }
 
     /// Unload the model without waiting for the transcribe-cpp worker to
-    /// exit, so it never blocks the caller (e.g. the event loop) behind a
-    /// transcription in progress. The model reads as unloaded at once.
+    /// exit. NPU requests are serialized: unloading waits for a current NPU
+    /// operation to finish (bounded by the worker timeout).
     pub fn request_unload(&self) {
         drop(self.begin_unload());
     }
@@ -469,6 +473,8 @@ impl TranscriptionManager {
     /// its load is queued behind this unload, so the unload can never affect
     /// it. Only the worker's exit is left to wait for.
     fn begin_unload(&self) -> Unloading {
+        #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
+        crate::windows_npu::unload();
         let unloading = self.engine.unload();
         // Dropping an ONNX engine frees its resources.
         *self.lock_onnx() = None;
@@ -601,6 +607,11 @@ impl TranscriptionManager {
             *current_model = None;
         }
 
+        #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
+        if !matches!(model_info.engine_type, EngineType::OpenVinoNpu) {
+            crate::windows_npu::unload();
+        }
+
         // Create appropriate engine based on model type
 
         let loaded_onnx = match model_info.engine_type {
@@ -671,6 +682,20 @@ impl TranscriptionManager {
                     caps.supports_language_detect
                 );
                 None
+            }
+            EngineType::OpenVinoNpu => {
+                #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
+                {
+                    crate::windows_npu::load(&self.app_handle).map_err(|e| {
+                        emit_loading_failed(&e);
+                        anyhow::anyhow!(e)
+                    })?;
+                    None
+                }
+                #[cfg(not(all(target_os = "windows", target_arch = "x86_64")))]
+                {
+                    return Err(anyhow::anyhow!("Intel NPU edition requires Windows x64"));
+                }
             }
             EngineType::Parakeet => {
                 let engine =
@@ -814,6 +839,12 @@ impl TranscriptionManager {
     /// its real backend string; ONNX engines report "onnx"; `None` when no
     /// model is loaded.
     pub fn current_backend(&self) -> Option<String> {
+        #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
+        if self.get_current_model().as_deref() == Some(crate::windows_npu::MODEL_ID)
+            && crate::windows_npu::is_ready()
+        {
+            return Some("OpenVINO NPU".into());
+        }
         if let Some(info) = self.engine.loaded() {
             return Some(info.backend);
         }
@@ -1185,12 +1216,41 @@ impl TranscriptionManager {
             );
         }
 
-        // Perform transcription with the appropriate engine.
-        let run = match self.engine.loaded() {
-            Some(info) => {
-                self.transcribe_cpp(info, audio, &settings, &validated_language, &active_model)?
+        // The NPU selection is explicit and never falls through to another engine.
+        #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
+        let npu_run = if active_model == crate::windows_npu::MODEL_ID {
+            let text = crate::windows_npu::transcribe(&audio, Some(&validated_language))
+                .map_err(anyhow::Error::msg)?;
+            Some(RunOutcome {
+                text,
+                languages: self
+                    .model_manager
+                    .get_model_info(&active_model)
+                    .map(|m| m.supported_languages)
+                    .unwrap_or_default(),
+                applied_language_hint: (validated_language != "auto")
+                    .then(|| validated_language.clone()),
+                output_was_translated: false,
+                model_detected_language: None,
+                // No initial-prompt API: keep Handy's fuzzy custom-word correction.
+                model_is_whisper: false,
+            })
+        } else {
+            None
+        };
+        #[cfg(not(all(target_os = "windows", target_arch = "x86_64")))]
+        let npu_run: Option<RunOutcome> = None;
+        let run = if let Some(run) = npu_run {
+            run
+        } else {
+            match self.engine.loaded() {
+                Some(info) => {
+                    self.transcribe_cpp(info, audio, &settings, &validated_language, &active_model)?
+                }
+                None => {
+                    self.transcribe_onnx(&audio, &settings, &validated_language, &active_model)?
+                }
             }
-            None => self.transcribe_onnx(&audio, &settings, &validated_language, &active_model)?,
         };
 
         let output_language = with_model_detected_language(
@@ -1303,31 +1363,6 @@ impl TranscriptionManager {
         );
         let output_was_translated = run_plan.target_language.as_deref() == Some("en");
         let applied_language_hint = run_plan.language.clone();
-
-        // Windows x64 only: an explicitly configured Intel NPU runs OpenVINO
-        // Whisper on device="NPU". This is not Vulkan or GPU acceleration.
-        // Unsupported hardware, missing deps, or failures transparently fall
-        // back to the existing transcribe-cpp worker with the same PCM.
-        // Custom-word prompts are left on the native path until the NPU path
-        // supports them with equivalent semantics.
-        #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
-        if model_is_whisper && settings.custom_words.is_empty() {
-            if let Some(text) = crate::windows_npu::try_transcribe(
-                &audio,
-                applied_language_hint.as_deref(),
-                output_was_translated,
-            ) {
-                info!("Transcribed through OpenVINO Whisper on Intel NPU");
-                return Ok(RunOutcome {
-                    text,
-                    languages,
-                    applied_language_hint,
-                    output_was_translated,
-                    model_detected_language: None,
-                    model_is_whisper: true,
-                });
-            }
-        }
 
         let run_options = RunOptions {
             task: run_plan.task,

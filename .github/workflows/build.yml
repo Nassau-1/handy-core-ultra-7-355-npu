@@ -43,6 +43,10 @@ on:
         required: false
         type: boolean
         default: false
+      bundle-npu:
+        required: false
+        type: boolean
+        default: false
       no-cache:
         required: false
         type: boolean
@@ -512,6 +516,20 @@ jobs:
           chmod +x "$tools_dir/linuxdeploy-${arch}.AppImage"
           "$tools_dir/linuxdeploy-${arch}.AppImage" --appimage-extract-and-run --version
 
+      - uses: actions/setup-python@v6
+        if: inputs.bundle-npu
+        with:
+          python-version: "3.12"
+
+      - name: Bundle pinned NPU runtime and model
+        if: inputs.bundle-npu
+        shell: pwsh
+        run: |
+          python -m pip install -r packaging/npu-requirements.txt
+          if ($LASTEXITCODE -ne 0) { throw 'NPU dependencies failed' }
+          python scripts/prepare_npu.py
+          if ($LASTEXITCODE -ne 0) { throw 'NPU payload preparation failed' }
+
       - name: Build with Tauri
         uses: tauri-apps/tauri-action@v0
         env:
@@ -864,7 +882,7 @@ jobs:
             Write-Host "Auditing NSIS package: $($pkg.FullName)"
             $installDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
             New-Item -ItemType Directory -Path $installDir | Out-Null
-            $proc = Start-Process -FilePath $pkg.FullName -ArgumentList @("/S", "/PORTABLE", "/D=$installDir") -Wait -PassThru
+            $proc = Start-Process -FilePath $pkg.FullName -ArgumentList @("/S", "/PORTABLE", "/D=$installDir") -WindowStyle Hidden -Wait -PassThru
             if ($proc.ExitCode -ne 0) {
               throw "Silent portable install failed for $($pkg.FullName) with exit code $($proc.ExitCode)"
             }
@@ -885,7 +903,7 @@ jobs:
             $logFile = Join-Path $installDir "msi-admin-install.log"
             # Keep quoting explicit and place public properties last.
             $msiArgs = "/a `"$($pkg.FullName)`" /qn /L*v `"$logFile`" TARGETDIR=`"$installDir`""
-            $proc = Start-Process -FilePath "msiexec.exe" -ArgumentList $msiArgs -Wait -PassThru
+            $proc = Start-Process -FilePath "msiexec.exe" -ArgumentList $msiArgs -WindowStyle Hidden -Wait -PassThru
             if ($proc.ExitCode -ne 0) {
               if (Test-Path $logFile) { Get-Content $logFile | Out-Host }
               throw "Administrative install failed for $($pkg.FullName) with exit code $($proc.ExitCode)"
@@ -893,6 +911,37 @@ jobs:
             Assert-PackageContents -Root $installDir -Label "Installed MSI"
             Remove-Item -Recurse -Force $installDir
           }
+
+      - name: Verify Rust NPU integration
+        if: inputs.bundle-npu
+        shell: pwsh
+        working-directory: src-tauri
+        run: |
+          cargo test --release --lib windows_npu --locked
+          if ($LASTEXITCODE -ne 0) { throw 'NPU Rust tests failed' }
+          cargo clippy --release --lib --locked
+          if ($LASTEXITCODE -ne 0) { throw 'Rust clippy failed' }
+
+      - name: Build Intune package
+        if: inputs.bundle-npu
+        shell: pwsh
+        run: |
+          $msi = Get-ChildItem src-tauri/target/release/bundle/msi/*.msi | Select-Object -First 1
+          ./scripts/package_intune.ps1 -Installer $msi.FullName
+
+      - name: Verify silent machine install and uninstall
+        if: inputs.bundle-npu
+        shell: pwsh
+        run: ./scripts/test_intune_install.ps1
+
+      - name: Upload Intune package
+        if: inputs.bundle-npu
+        uses: actions/upload-artifact@v7
+        with:
+          name: handy-ultra355-intune
+          path: build/intune/output/*
+          compression-level: 0
+          retention-days: 30
 
       - name: Upload artifacts (Windows)
         if: inputs.upload-artifacts && contains(inputs.platform, 'windows')
