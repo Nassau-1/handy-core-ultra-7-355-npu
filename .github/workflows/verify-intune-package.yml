@@ -6,14 +6,20 @@ on:
         description: Successful installer build run ID (binary reused, not rebuilt)
         required: true
         default: '41085509166'
+      publish-preview:
+        description: Publish the verified Preview 1 installers and Intune package
+        type: boolean
+        default: false
 permissions:
-  contents: read
+  contents: write
   actions: read
 jobs:
   verify:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - name: Retrieve built installers
         shell: pwsh
         env:
@@ -43,3 +49,25 @@ jobs:
         with:
           name: intune-install-diagnostic
           path: build/*.log
+      - name: Publish verified preview
+        if: inputs.publish-preview
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN: ${{ inputs.source-run }}
+        run: |
+          $builtSha = gh api "repos/$env:GITHUB_REPOSITORY/actions/runs/$env:SOURCE_RUN" --jq .head_sha
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot resolve installer provenance' }
+          git diff --exit-code "$builtSha..HEAD" -- src-tauri src package.json bun.lock packaging/model-lock.json packaging/npu-requirements.txt
+          if ($LASTEXITCODE -ne 0) { throw 'Application/model source differs from the built installer' }
+          $assets = @((Get-ChildItem build/installers -Recurse -File | Where-Object { $_.Extension -in '.msi','.exe' }).FullName)
+          $assets += @((Get-ChildItem build/intune/output -File).FullName)
+          $hashes = @($assets | ForEach-Object { "$( (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash.ToLowerInvariant() )  $([IO.Path]::GetFileName($_))" })
+          $hashes | Set-Content build/SHA256SUMS.txt -Encoding utf8
+          $assets += (Resolve-Path build/SHA256SUMS.txt).Path
+          $notes = Get-Content packaging/preview-release.md -Raw
+          $notes += "`nInstaller source commit: $builtSha. Packaging commit: $env:GITHUB_SHA.`n"
+          $notes += "Verification: https://github.com/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID`n"
+          $notes | Set-Content build/release-notes.md -Encoding utf8
+          gh release create v0.10.0-npu-preview.1 @assets --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --title 'Handy for Core Ultra 7 355 NPU — Preview 1' --notes-file build/release-notes.md --prerelease --latest=false
+          if ($LASTEXITCODE -ne 0) { throw 'Preview release publication failed' }

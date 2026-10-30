@@ -2,7 +2,12 @@ $ErrorActionPreference = 'Stop'
 try {
     $package = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'package.json') -Raw | ConvertFrom-Json
     $msi = Join-Path $PSScriptRoot 'HandyNpu.msi'
-    if ((Get-FileHash -LiteralPath $msi -Algorithm SHA256).Hash -ne $package.sha256) {
+    # .NET avoids Get-FileHash's script-module autoload dependency in Windows PowerShell.
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    $stream = [System.IO.File]::OpenRead($msi)
+    try { $hash = [System.BitConverter]::ToString($sha.ComputeHash($stream)).Replace('-','') }
+    finally { $stream.Dispose(); $sha.Dispose() }
+    if ($hash -ne $package.sha256) {
         throw 'Installer SHA256 mismatch'
     }
     $log = Join-Path $env:TEMP 'Handy-CoreUltra355-NPU-install.log'
