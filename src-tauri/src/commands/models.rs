@@ -177,7 +177,9 @@ pub async fn set_active_model(
     _transcription_manager: State<'_, Arc<TranscriptionManager>>,
     model_id: String,
 ) -> Result<(), String> {
-    switch_active_model(&app_handle, &model_id)
+    tauri::async_runtime::spawn_blocking(move || switch_active_model(&app_handle, &model_id))
+        .await
+        .map_err(|e| format!("Model loading task failed: {e}"))?
 }
 
 #[tauri::command]

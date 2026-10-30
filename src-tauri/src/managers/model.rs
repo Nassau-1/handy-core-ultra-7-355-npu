@@ -733,7 +733,7 @@ impl ModelManager {
                 speed_score: 0.35,
                 supports_translation: false,
                 is_recommended: false,
-                supported_languages: whisper_languages,
+                supported_languages: whisper_languages.clone(),
                 supports_language_selection: true,
                 is_custom: false,
                 supports_streaming: false,
