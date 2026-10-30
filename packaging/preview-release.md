@@ -1,6 +1,6 @@
-# Handy for Core Ultra 7 355 NPU — Preview 1
+# Handy for Core Ultra 7 355 NPU â€” Preview 1
 
-Windows x64 preview with an explicit **Whisper Turbo INT8 · Intel NPU** model.
+Windows x64 preview with an explicit **Whisper Turbo INT8 Â· Intel NPU** model.
 
 - Bundles the official OpenVINO Whisper large-v3-turbo INT8 export and a private OpenVINO 2026.2.1 runtime; no Python installation or model download required.
 - NPU execution is explicit and errors never silently fall back to CPU/GPU. Other Handy models remain separately available.
@@ -12,7 +12,7 @@ Windows x64 preview with an explicit **Whisper Turbo INT8 · Intel NPU** model.
 
 Use the x64 MSI or setup EXE. For Intune, use Install.intunewin and the matching metadata/detection/requirements from this release. See [operations](https://github.com/Nassau-1/handy-core-ultra-7-355-npu/blob/codex/core-ultra-355-npu/docs/operations.md).
 
-Select **Whisper Turbo INT8 · Intel NPU** in Handy. First model initialization may take up to 20 minutes. A compatible Intel NPU driver and Microsoft Edge WebView2 are prerequisites.
+Select **Whisper Turbo INT8 Â· Intel NPU** in Handy. First model initialization may take up to 20 minutes. A compatible Intel NPU driver and Microsoft Edge WebView2 are prerequisites.
 
 ## Limits
 
