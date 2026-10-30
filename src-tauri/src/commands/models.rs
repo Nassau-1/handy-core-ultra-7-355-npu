@@ -69,6 +69,13 @@ pub async fn delete_model(
     transcription_manager: State<'_, Arc<TranscriptionManager>>,
     model_id: String,
 ) -> Result<(), String> {
+    #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
+    if model_id == crate::windows_npu::MODEL_ID {
+        return Err(
+            "This model is bundled with the application. Uninstall the NPU edition to remove it."
+                .into(),
+        );
+    }
     // If deleting the active model, unload it and clear the setting
     let settings = get_settings(&app_handle);
     if settings.selected_model == model_id {

@@ -1167,6 +1167,10 @@ impl ModelManager {
         // only insert ids not already present) instead of showing as a bare cache
         // find. Additive — see `seed_catalog_models`.
         Self::seed_catalog_models(&mut available_models);
+        #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
+        for model in available_models.values_mut() {
+            model.is_recommended = model.id == crate::windows_npu::MODEL_ID;
+        }
 
         // Auto-discover custom transcribe-cpp models (.bin / .gguf) in the models directory
         if let Err(e) = Self::discover_custom_transcribe_models(&models_dir, &mut available_models)
@@ -1211,6 +1215,14 @@ impl ModelManager {
         // and name. `ModelInfo` doesn't carry rank, so resolve it by id from the
         // catalog here.
         list.sort_by(|a, b| {
+            #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
+            {
+                let npu_order = (b.id == crate::windows_npu::MODEL_ID)
+                    .cmp(&(a.id == crate::windows_npu::MODEL_ID));
+                if npu_order != std::cmp::Ordering::Equal {
+                    return npu_order;
+                }
+            }
             crate::catalog::rank_of(&a.id)
                 .cmp(&crate::catalog::rank_of(&b.id))
                 .then((!a.is_recommended).cmp(&(!b.is_recommended)))

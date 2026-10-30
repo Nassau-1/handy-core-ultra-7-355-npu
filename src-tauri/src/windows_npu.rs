@@ -4,7 +4,7 @@ use serde_json::{json, Value};
 use std::io::{BufRead, BufReader, Write};
 use std::os::windows::process::CommandExt;
 use std::path::PathBuf;
-use std::process::{Child, ChildStdin, Command, Stdio};
+use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{mpsc, Mutex, OnceLock};
 use std::time::Duration;
@@ -48,7 +48,7 @@ pub fn is_ready() -> bool {
 
 struct Worker {
     child: Child,
-    stdin: ChildStdin,
+    requests: mpsc::Sender<Vec<u8>>,
     responses: mpsc::Receiver<Result<Value, String>>,
 }
 
@@ -84,7 +84,15 @@ impl Worker {
             .stderr(Stdio::null())
             .spawn()
             .map_err(|e| format!("Cannot launch NPU runtime: {e}"))?;
-        let stdin = child.stdin.take().ok_or("Missing worker stdin")?;
+        let mut stdin = child.stdin.take().ok_or("Missing worker stdin")?;
+        let (requests, frames) = mpsc::channel::<Vec<u8>>();
+        std::thread::spawn(move || {
+            for frame in frames {
+                if stdin.write_all(&frame).and_then(|_| stdin.flush()).is_err() {
+                    break;
+                }
+            }
+        });
         let stdout = child.stdout.take().ok_or("Missing worker stdout")?;
         let (tx, rx) = mpsc::channel();
         std::thread::spawn(move || {
@@ -99,7 +107,7 @@ impl Worker {
         });
         let worker = Self {
             child,
-            stdin,
+            requests,
             responses: rx,
         };
         let ready = worker.response(LOAD_TIMEOUT)?;
@@ -132,9 +140,9 @@ impl Worker {
         for sample in audio {
             frame.extend_from_slice(&sample.to_le_bytes());
         }
-        self.stdin
-            .write_all(&frame)
-            .and_then(|_| self.stdin.flush())
+        // Writing large audio frames must not bypass the inference deadline.
+        self.requests
+            .send(frame)
             .map_err(|e| format!("NPU worker write failed: {e}"))?;
         let response = self.response(REQUEST_TIMEOUT)?;
         if response.get("ok").and_then(Value::as_bool) != Some(true) {

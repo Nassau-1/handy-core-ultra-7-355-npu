@@ -38,6 +38,7 @@ def prepare_model(destination):
             raise RuntimeError(f"Model integrity failure: {entry['name']}")
         partial.replace(path)
     shutil.copy2(ROOT / "packaging/model-lock.json", destination / "model-lock.json")
+    shutil.copy2(ROOT / "packaging/WHISPER-LICENSE.txt", destination / "LICENSE.txt")
 
 
 def main():
