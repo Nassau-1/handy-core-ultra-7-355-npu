@@ -54,3 +54,4 @@ try {
 }
 if (Test-Path -LiteralPath $key) { throw 'Uninstall left the product registration' }
 Write-Output 'Machine uninstall verified.'
+exit 0
