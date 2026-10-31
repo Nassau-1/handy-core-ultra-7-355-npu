@@ -4,14 +4,28 @@ A Windows x64 fork of [Handy](https://github.com/cjpais/Handy) with an explicit
 **Whisper Turbo INT8 · Intel NPU** model, a bundled OpenVINO runtime, and an
 Intune Company Portal package. Based on [Bbrizly's Windows NPU prototype](https://github.com/Bbrizly/Handy-NPU-support/tree/feature/windows-intel-npu-openvino).
 
-## Status — 2026-10-30
+## Status — 2026-10-31
 
 Experimental [Preview 1 release](https://github.com/Nassau-1/handy-core-ultra-7-355-npu/releases/tag/v0.10.0-npu-preview.1).
 Windows build, silent installation, model discovery and uninstall checks passed.
-**Not yet tested on a Core Ultra 7 355.** No latency or accuracy guarantee.
+Hardware tests on the Core Ultra 7 355 found the bundled Whisper NPU load still
+unresolved. A separate local **Nemotron 3.5 ASR Streaming 0.6B** pilot works on
+the NPU in French, English and mixed speech; the user validated microphone/paste
+without a fan surge on the original 40-second version.
+
+The new cache-aware runtime supports complete dictations up to ten minutes,
+with all neural graphs on NPU and text inserted after recording stops. The
+600-second synthetic fixture takes about 10–11 seconds after stop. Its native
+installer acceptance is tracked in [verification](docs/verification-2026-10-31.md).
+These are local pilot changes; Preview 1 and the shared Intune distribution have
+not been replaced. See [reproduction and limitations](experiments/nemotron_npu/README.md).
+No latency or accuracy guarantee.
 No Microsoft Store certification or Intel endorsement is implied.
 
 ## Use
+
+The instructions below describe the published Whisper preview. For the optional
+locally validated Nemotron payloads, follow the [experiment README](experiments/nemotron_npu/README.md).
 
 Install the x64 MSI or setup EXE. Python and the pinned OpenVINO model are included;
 there is no separate model download. In Handy's model selector, choose

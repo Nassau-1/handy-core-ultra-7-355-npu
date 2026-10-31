@@ -1,6 +1,7 @@
 # ADR-003: Bounded streaming state for ten-minute NPU dictation
 
-Date: 2026-10-31. Status: implemented; long-reference and packaged acceptance in progress.
+Date: 2026-10-31. Status: implemented; long-reference and packaged checks passed,
+permanent local upgrade awaiting Windows elevation.
 
 The user requested dictations up to ten minutes while preserving the quiet NPU
 path. Increasing the previous 4,096-frame utterance shape would expand attention

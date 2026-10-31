@@ -47,6 +47,17 @@ does not import PyTorch or Transformers. The persistent worker reports actual
 execution devices and its maximum sample count during initialization. Rust
 rejects oversized requests before sending audio, and the worker validates the
 protocol independently. The current 4,096-frame artifact supports approximately
-40 seconds per utterance; stateful streaming is not implemented. Installation
+40 seconds per utterance. Installation
 and numerical validation are documented in the
 [experiment README](../experiments/nemotron_npu/README.md).
+
+The separate `nemotron-35-npu-ten-minute` model uses the
+`nemotron-npu-streaming` payload and a distinct cache. Five NPU graphs split the
+first/continuation subsamplers from the shared encoder, predictor and joint.
+Bounded attention, convolution and predictor state carry across 64-frame groups,
+then reset for the next dictation. The host computes audio features and the small
+Boolean attention mask. Native four-frame attention boundaries are preserved;
+unused final group padding is never decoded. Both native and worker limits are
+600 seconds. Handy still records first and inserts the final result after stop.
+See [ADR-003](decisions/ADR-003-cached-npu-dictation.md) for numeric acceptance and
+the rejected independent-chunk approach. The 40-second payload stays intact.

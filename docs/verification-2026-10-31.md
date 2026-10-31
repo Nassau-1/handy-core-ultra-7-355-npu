@@ -128,7 +128,7 @@ After administrative extraction, Handy's headless transcription path reported
 Inference includes preprocessing and text decoding. Engine load excludes Handy
 startup. A 42-second input failed with exit code 1 and an explicit duration-limit
 error, without truncation. The advertised limit is 40 seconds (655,200 samples,
-40.95 seconds internally). Cache-aware streaming is not implemented.
+40.95 seconds internally). Cache-aware streaming was not implemented in that build.
 
 The extracted build's GUI loaded Nemotron, displayed its active state and green
 status indicator, and retained automatic language detection and Ctrl+Space. The
@@ -150,3 +150,52 @@ local pilot upgrade; model payload and cache remain per-user in LocalAppData.
 
 No Intune catalog change or shared rollout was performed. NPU Whisper loading
 remains unresolved; Nemotron is a separate, explicitly identified pilot model.
+
+## Cache-aware ten-minute extension
+
+The separate streaming variant retains bounded attention, convolution and RNNT
+state across 64-frame groups, resets state between dictations, and caps input at
+9,600,000 samples. All five neural graphs report NPU placement. The driver reports
+the default inference precision hint as float16; the HF reference runs float32.
+
+Torch export wrappers match unmodified HF native cache calls over all 118 groups
+of the 600-second test (the initial slow reference job timed out while running a
+second HF decode pass). The optimized long reference uses unmodified HF cached
+encoder/decoder components and first matches native HF encoded outputs/tokens on
+French, English and mixed fixtures. Its complete run finished in 103 seconds.
+
+Six short/silence fixtures pass exact token equality twice. The 600-second fixture
+passes identical-word comparison twice, with a single punctuation/case change;
+exact tokens are **not** claimed. Global relative L2 is 0.569%, worst group 2.372%.
+The failed initial strict gate and the reason for the explicit replacement
+criteria are recorded in [ADR-003](decisions/ADR-003-cached-npu-dictation.md).
+Frontend outputs are also compared to HF. Thirteen local decoder, protocol and
+validation-policy tests pass. These are synthetic implementation checks, not WER.
+
+The frozen executable reproduces the source output, accepts exactly 600 seconds,
+rejects one additional sample without output, and rejects oversized framed input.
+Repeated long requests match; silence and a subsequent short request do not
+inherit the preceding dictation's state. Installed payload responses match the
+source on all six deployment test requests. Installed cold preparation takes
+40.45 s including process/imports; cached startup takes 0.51 s. The installed
+600-second fixture takes 10.52–10.95 s end to end, with 3.72–4.09 s process CPU.
+A five-second loaded idle observation records 0.00 s CPU. No new acoustic or
+power measurement was made. The original accepted 40-second payload is preserved.
+
+Native build, Rust tests/clippy, package audit and silent installation/removal for
+[run 41233475160](https://github.com/Nassau-1/handy-core-ultra-7-355-npu/actions/runs/41233475160)
+passed. Runtime/validation changes after native commit `cf65f74` do not change
+the Rust or frontend source used by that build. Downloaded artifact SHA-256:
+`bee2d401aa618b0b604852ce6ad674c698a6aec2317e29a39dd2c8b43263148d`.
+Administrative extraction returned 0. Extracted executable SHA-256:
+`b179785b82b50d4e0be351e4e70e0d2f82cd422f4aeb4f6ba72a7a6dbd1a766b`.
+
+The actual Handy headless path reports `OpenVINO NPU`: mixed 9.895-second input
+loads in 501 ms and transcribes in 440 ms. The 600-second input loads in 470 ms,
+transcribes in 10,204 ms, preserves all words and includes the final marker.
+The application WAV loader divides int16 by 32,767 (the Python soundfile fixture
+path uses 32,768), and Handy normalizes spaces. Native output has minor additional
+punctuation/casing/hyphen differences; byte equality is not claimed. Unicode word
+sequences match. Input of 600 seconds plus one sample returns exit 1 with the
+explicit ten-minute limit and no successful transcript. Permanent upgrade is
+awaiting Windows elevation.
