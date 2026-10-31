@@ -128,9 +128,15 @@ After administrative extraction, Handy's headless transcription path reported
 Inference includes preprocessing and text decoding. Engine load excludes Handy
 startup. A 42-second input failed with exit code 1 and an explicit duration-limit
 error, without truncation. The advertised limit is 40 seconds (655,200 samples,
-40.95 seconds internally). Cache-aware streaming is not implemented. Final
-Program Files installation and real microphone/paste validation remain pending.
-The existing GPU configuration remains available.
+40.95 seconds internally). Cache-aware streaming is not implemented.
+
+The extracted build's GUI loaded Nemotron, displayed its active state and green
+status indicator, and retained automatic language detection and Ctrl+Space. The
+runtime log confirmed `device=NPU (no fallback)`. Windows cancelled elevation
+before the local MSI installation began, so Program Files remains unchanged.
+The extracted build is running for the user's live microphone/paste/fan check;
+permanent installation and real-voice acceptance remain pending. The existing
+GPU configuration remains available.
 
 No Intune catalog change or shared rollout was performed. NPU Whisper loading
 remains unresolved; Nemotron is a separate, explicitly identified pilot model.
