@@ -22,9 +22,11 @@ def main():
     p.add_argument('--device', choices=['NPU', 'CPU'], default='NPU')
     p.add_argument('--joint-device', choices=['CPU', 'NPU'])
     p.add_argument('--predictor-device', choices=['CPU', 'NPU'])
+    p.add_argument('--executable', type=Path, help='Use the frozen runtime instead of Python')
     args = p.parse_args()
-    command = [sys.executable, str(Path(__file__).with_name('runtime.py')),
-               '--artifact', str(args.artifact), '--cache', str(args.cache),
+    command = ([str(args.executable)] if args.executable else
+               [sys.executable, str(Path(__file__).with_name('runtime.py'))])
+    command += ['--artifact', str(args.artifact), '--cache', str(args.cache),
                '--model', str(args.model), '--device', args.device,
                '--joint-device', args.joint_device or args.device,
                '--predictor-device', args.predictor_device or args.device, '--worker']

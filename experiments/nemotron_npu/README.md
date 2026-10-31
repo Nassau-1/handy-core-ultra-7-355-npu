@@ -46,7 +46,7 @@ python export.py --model MODEL_DIRECTORY --audio mono-16khz.wav --output IR_DIRE
 python runtime.py --artifact IR_DIRECTORY --cache CACHE_DIRECTORY --device CPU --validate --report cpu-parity.json
 python runtime.py --artifact IR_DIRECTORY --cache CACHE_DIRECTORY --device NPU --compiler PLUGIN --validate --report npu-cold.json
 python runtime.py --artifact IR_DIRECTORY --cache CACHE_DIRECTORY --device NPU --compiler PLUGIN --validate --report npu-warm.json
-python -m unittest discover -s . -p test_decode.py -v
+python -m unittest discover -s . -p 'test_*.py' -v
 ```
 
 Add `--frames 4096` to export the 40-second pilot. `--reference-only` creates
@@ -79,6 +79,13 @@ are separate from the executable. A local payload under the application's
 pilot model in Handy builds containing this integration. Do not replace the
 bundled Whisper payload or upload the pilot to shared Intune distribution.
 
+After a successful all-NPU validation of the frozen executable, install that
+payload with `install_pilot.py --artifact IR_DIRECTORY --worker FROZEN_DIRECTORY
+--model MODEL_DIRECTORY --validation VALIDATION_REPORT`. The installer checks
+the pinned 4,096-frame shape and successful all-NPU reference parity, stages the
+payload with a hash inventory and refuses to overwrite an existing pilot.
+`benchmark.py --executable FROZEN_EXECUTABLE` verifies the packaged transport.
+
 Compilation may take substantially longer than inference. Run experiments in a
 supervised child process with a time budget; killing that child also cancels
 native compilation. The currently installed Handy GPU configuration remains
@@ -97,6 +104,13 @@ Repeated short utterances took 0.12–0.25 s end to end in different runs; proce
 CPU time was roughly 0.02–0.09 s. No power meter or acoustic measurement was used.
 First inference after loading is slower. The 24-second reference fixture took
 0.60 s on the second inference with the larger shape, excluding its frontend.
+At its installed location, the larger frozen worker compiled in about 105 s
+under a different concurrent load, then restarted in 5.43 s including process
+startup and imports. A five-second idle sample recorded 0.00 s process CPU time.
+The installed persistent worker processed the 24.37-second fixture in 0.51 s
+including preprocessing. A 39.845-second fixture also passed reference-token
+parity; repeated inference was about 0.76 s before preprocessing. These small
+synthetic examples cannot establish real-world recognition quality or silence.
 
 `frontend.py` and `StaticEncoder` adapt algorithms from the Apache-2.0 reference;
 see [the upstream license](TRANSFORMERS-LICENSE.txt). NVIDIA model licensing still
