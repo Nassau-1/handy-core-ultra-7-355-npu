@@ -15,8 +15,9 @@ without a fan surge on the original 40-second version.
 
 The new cache-aware runtime supports complete dictations up to ten minutes,
 with all neural graphs on NPU and text inserted after recording stops. The
-600-second synthetic fixture takes about 10–11 seconds after stop. Its native
-installer acceptance is tracked in [verification](docs/verification-2026-10-31.md).
+600-second synthetic fixture takes about 10–11 seconds after stop. The permanent
+local upgrade and installed NPU smoke test passed; details are tracked in
+[verification](docs/verification-2026-10-31.md).
 These are local pilot changes; Preview 1 and the shared Intune distribution have
 not been replaced. See [reproduction and limitations](experiments/nemotron_npu/README.md).
 No latency or accuracy guarantee.

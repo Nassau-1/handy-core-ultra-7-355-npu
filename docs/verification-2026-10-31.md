@@ -199,9 +199,17 @@ punctuation/casing/hyphen differences; byte equality is not claimed. Unicode wor
 sequences match. Input of 600 seconds plus one sample returns exit 1 with the
 explicit ten-minute limit and no successful transcript.
 
-Windows cancelled the elevation request before MSI execution; Program Files
-still contains the accepted 40-second build. The extracted ten-minute build is
-running as the temporary local test application. Its GUI successfully loaded
+Windows cancelled the first elevation request before MSI execution. The extracted
+ten-minute build temporarily served as the local test application. Its GUI loaded
 `Nemotron 3.5 · Intel NPU · 10 min`, shows it active, and retains Ctrl+Space,
-automatic language detection and the default microphone. Permanent upgrade is
-pending a new user-assisted Windows elevation; it is not claimed complete.
+automatic language detection and the default microphone.
+
+The user explicitly requested a retry and validated Windows elevation. Permanent
+MSI installation returned 0, without a reboot. Product code is
+`{637F17D5-5758-426B-A1C6-DD90EBA3E473}`; the Program Files executable matches the
+tested SHA-256 above. The Start menu shortcut targets that installed executable.
+Post-install mixed-language transcription reports `OpenVINO NPU`, loading in
+607 ms and transcribing 9.895 seconds in 441 ms. The installed GUI is open with
+the ten-minute model, automatic language detection, default microphone and
+Ctrl+Space retained. The previous 40-second payload remains available; no shared
+Intune deployment was performed. This completes the permanent local upgrade.

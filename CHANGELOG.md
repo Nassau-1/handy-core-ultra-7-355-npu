@@ -6,7 +6,8 @@
 - Keep all five neural graphs on NPU, lightweight audio preparation on CPU and the existing record-then-insert interaction.
 - Validate complete synthetic ten-minute audio, state reset, frozen PCM protocols and installed payload equivalence; measure about 10–11 seconds of processing and 0.51-second cached startup.
 - Document the long-reference punctuation difference and explicit lexical/numerical acceptance criteria; preserve the accepted 40-second payload.
-- Pass Windows build, Rust/clippy, package and installer checks; verify full ten-minute transcription and oversize rejection in the native executable. Permanent application upgrade awaits Windows elevation.
+- Pass Windows build, Rust/clippy, package and installer checks; verify full ten-minute transcription and oversize rejection in the native executable.
+- Install the permanent local upgrade after a user-approved elevation retry; verify the Program Files binary, Start menu target, NPU transcription and retained ten-minute model/Auto language/Ctrl+Space settings. No reboot or shared rollout.
 
 ## 2026-10-31 — Local pilot validated
 

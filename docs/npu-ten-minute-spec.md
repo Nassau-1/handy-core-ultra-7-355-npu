@@ -1,7 +1,7 @@
 # Ten-minute NPU dictation
 
-Date: 2026-10-31. Status: implementation and hardware/native validation complete;
-permanent local upgrade awaiting Windows elevation.
+Date: 2026-10-31. Status: implementation, hardware/native validation and permanent
+local installation complete. Installed GUI retains the ten-minute model.
 
 ## Objective and scope
 

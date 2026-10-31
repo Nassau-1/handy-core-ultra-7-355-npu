@@ -2,7 +2,7 @@
 
 - [x] Preserve encoder and RNNT state for ten-minute NPU dictations; validate full 600-second audio, word parity, cache restart, state reset and oversized-input rejection (2026-10-31).
 - [x] Complete native package/installer CI acceptance; verify ten-minute transcription and oversize rejection in the extracted Handy build.
-- [ ] Complete the permanent Windows upgrade and activate the separate ten-minute model on the pilot.
+- [x] Complete the permanent Windows upgrade and activate the separate ten-minute model on the pilot (2026-10-31); installed NPU smoke test and retained settings verified.
 - [x] Install Intel NPU driver 32.0.100.5540 and reboot the pilot (2026-10-31); NPU enumerates and tiny arithmetic inference succeeds.
 - [x] Validate loading changes with 14 Python tests, frontend lint and TypeScript/Vite build.
 - [x] Validate Rust cancellation tests/clippy and package smoke checks in Windows CI; extract and run the test build locally.
