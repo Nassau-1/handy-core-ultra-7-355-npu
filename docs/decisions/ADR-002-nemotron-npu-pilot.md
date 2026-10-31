@@ -1,6 +1,6 @@
 # ADR-002: Separate locally validated Nemotron NPU pilot
 
-Date: 2026-10-31. Status: accepted for pilot implementation; application validation pending.
+Date: 2026-10-31. Status: accepted; native application and user dictation validated on the local pilot.
 
 The bundled Whisper Turbo INT8 pipeline still did not finish initialization in
 the bounded hardware trials after the driver update. A pinned Transformers

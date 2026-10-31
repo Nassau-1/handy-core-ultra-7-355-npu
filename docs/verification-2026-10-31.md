@@ -132,11 +132,21 @@ error, without truncation. The advertised limit is 40 seconds (655,200 samples,
 
 The extracted build's GUI loaded Nemotron, displayed its active state and green
 status indicator, and retained automatic language detection and Ctrl+Space. The
-runtime log confirmed `device=NPU (no fallback)`. Windows cancelled elevation
-before the local MSI installation began, so Program Files remains unchanged.
-The extracted build is running for the user's live microphone/paste/fan check;
-permanent installation and real-voice acceptance remain pending. The existing
-GPU configuration remains available.
+runtime log confirmed `device=NPU (no fallback)`.
+The user subsequently confirmed the live microphone/shortcut/Notepad flow works
+with Nemotron and reported no fan surge ("ça fonctionne sans souffle !"). This is
+user-observed acoustic acceptance for that trial, not a calibrated sound or power
+measurement.
+
+After the first elevation was cancelled, the user authorized a retry. Permanent
+MSI installation completed successfully with exit code 0, without requiring a
+reboot. The installed Program Files executable matches the tested artifact:
+SHA-256 `59f6948673f31996adb864cae0c0e9463027c9a4e206e371487b26b163ae10c9`.
+The restarted installed GUI retains Nemotron, automatic language detection and
+Ctrl+Space. A post-install mixed-language CLI smoke test reports OpenVINO NPU,
+loads the engine in 478 ms and transcribes the 9.895-second fixture in 681 ms
+on its first pass. The existing GPU configuration remains available. This is a
+local pilot upgrade; model payload and cache remain per-user in LocalAppData.
 
 No Intune catalog change or shared rollout was performed. NPU Whisper loading
 remains unresolved; Nemotron is a separate, explicitly identified pilot model.

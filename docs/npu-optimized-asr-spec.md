@@ -1,6 +1,6 @@
 # Architecture-specific ASR experiment
 
-Date: 2026-10-31. Status: implementation in progress, not a released backend.
+Date: 2026-10-31. Status: local pilot implemented, installed and validated; no shared release.
 
 ## User objective
 
