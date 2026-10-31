@@ -38,3 +38,29 @@ pub fn unload_model_manually(
     transcription_manager.request_unload();
     Ok(())
 }
+
+#[tauri::command]
+#[specta::specta]
+pub fn cancel_npu_load() -> bool {
+    #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
+    {
+        return crate::windows_npu::cancel_load();
+    }
+    #[cfg(not(all(target_os = "windows", target_arch = "x86_64")))]
+    {
+        false
+    }
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn get_npu_load_status() -> serde_json::Value {
+    #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
+    {
+        return crate::windows_npu::load_status();
+    }
+    #[cfg(not(all(target_os = "windows", target_arch = "x86_64")))]
+    {
+        serde_json::Value::Null
+    }
+}

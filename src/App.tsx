@@ -18,6 +18,7 @@ import "./App.css";
 import AccessibilityPermissions from "./components/AccessibilityPermissions";
 import SecureInputWarning from "./components/SecureInputWarning";
 import Footer from "./components/footer";
+import NpuLoadProgress from "./components/model-selector/NpuLoadProgress";
 import Onboarding, { AccessibilityOnboarding } from "./components/onboarding";
 import {
   DebugSettings,
@@ -385,6 +386,7 @@ function App() {
     <>
       {toaster}
       {content}
+      <NpuLoadProgress />
     </>
   );
 }

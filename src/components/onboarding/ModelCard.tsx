@@ -195,9 +195,15 @@ const ModelCard: React.FC<ModelCardProps> = ({
           <p className="text-text/60 text-sm leading-relaxed">
             {displayDescription}
           </p>
+          {model.id === "openvino-turbo-int8-npu" && (
+            <p className="text-text/60 text-xs">{t("npuLoading.unmeasured")}</p>
+          )}
         </div>
         {(model.accuracy_score > 0 || model.speed_score > 0) && (
-          <div className="hidden sm:flex items-center ms-4">
+          <div
+            className="hidden sm:flex items-center ms-4"
+            title={t("npuLoading.estimatedScores")}
+          >
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <p className="text-xs text-text/60 w-24 text-end">

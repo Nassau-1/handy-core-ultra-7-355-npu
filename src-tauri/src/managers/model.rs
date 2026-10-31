@@ -1155,7 +1155,8 @@ impl ModelManager {
                 filename: "openvino-turbo-int8-npu".into(), source: ModelSource::Local,
                 size_mb: 828, is_downloaded: false, is_downloading: false, partial_size: 0,
                 is_directory: true, engine_type: EngineType::OpenVinoNpu,
-                accuracy_score: 0.80, speed_score: 0.40,
+                // Unmeasured on the user's hardware; zero hides illustrative bars.
+                accuracy_score: 0.0, speed_score: 0.0,
                 supports_translation: false, is_recommended: true,
                 supported_languages: whisper_languages.clone(), supports_language_selection: true,
                 is_custom: false, supports_streaming: false, supports_language_detection: true,

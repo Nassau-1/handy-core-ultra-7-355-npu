@@ -1,14 +1,14 @@
 //! Bundled, explicit Intel NPU backend. Errors never select a different device.
-use log::info;
+use log::{info, warn};
 use serde_json::{json, Value};
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader, Read, Write};
 use std::os::windows::process::CommandExt;
 use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{mpsc, Mutex, OnceLock};
-use std::time::Duration;
-use tauri::{AppHandle, Manager};
+use std::sync::{mpsc, Arc, Mutex, OnceLock};
+use std::time::{Duration, Instant};
+use tauri::{AppHandle, Emitter, Manager};
 
 pub const MODEL_ID: &str = "openvino-turbo-int8-npu";
 const MAX_AUDIO_SAMPLES: usize = 16_000 * 600;
@@ -16,6 +16,45 @@ const LOAD_TIMEOUT: Duration = Duration::from_secs(20 * 60);
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(120);
 static WORKER: OnceLock<Mutex<Option<Worker>>> = OnceLock::new();
 static READY: AtomicBool = AtomicBool::new(false);
+static ACTIVE_LOAD: Mutex<Option<Arc<AtomicBool>>> = Mutex::new(None);
+static LOAD_STATUS: OnceLock<Mutex<Value>> = OnceLock::new();
+
+pub fn load_status() -> Value {
+    LOAD_STATUS
+        .get_or_init(|| Mutex::new(Value::Null))
+        .lock()
+        .map(|status| status.clone())
+        .unwrap_or(Value::Null)
+}
+
+fn progress(app: &AppHandle, stage: &str, started: Instant, active: bool, error: Option<&str>) {
+    let status = json!({"stage": stage, "elapsed_ms": started.elapsed().as_millis() as u64,
+        "active": active, "error": error});
+    if let Ok(mut stored) = LOAD_STATUS.get_or_init(|| Mutex::new(Value::Null)).lock() {
+        *stored = status.clone();
+    }
+    let _ = app.emit("npu-load-progress", status);
+}
+
+/// Independent of WORKER: cancellation must be possible while its mutex is busy.
+pub fn cancel_load() -> bool {
+    if let Ok(active) = ACTIVE_LOAD.lock() {
+        if let Some(cancel) = active.as_ref() {
+            cancel.store(true, Ordering::Release);
+            return true;
+        }
+    }
+    false
+}
+
+struct ActiveLoad;
+impl Drop for ActiveLoad {
+    fn drop(&mut self) {
+        if let Ok(mut active) = ACTIVE_LOAD.lock() {
+            *active = None;
+        }
+    }
+}
 
 fn slot() -> &'static Mutex<Option<Worker>> {
     WORKER.get_or_init(|| Mutex::new(None))
@@ -55,13 +94,15 @@ struct Worker {
 impl Drop for Worker {
     fn drop(&mut self) {
         READY.store(false, Ordering::Release);
-        let _ = self.child.kill();
-        let _ = self.child.wait();
+        // Do not wait indefinitely if Windows refuses termination.
+        if self.child.kill().is_ok() {
+            let _ = self.child.wait();
+        }
     }
 }
 
 impl Worker {
-    fn spawn(app: &AppHandle) -> Result<Self, String> {
+    fn spawn(app: &AppHandle, cancel: &AtomicBool, started: Instant) -> Result<Self, String> {
         let resources = app.path().resource_dir().map_err(|e| e.to_string())?;
         let exe = resources.join("resources/npu/worker/handy-npu-worker.exe");
         if !exe.is_file() || !bundled_model_available(app) {
@@ -81,9 +122,26 @@ impl Worker {
             .creation_flags(0x08000000)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
-            .stderr(Stdio::null())
+            .stderr(Stdio::piped())
             .spawn()
             .map_err(|e| format!("Cannot launch NPU runtime: {e}"))?;
+        if let Some(mut stderr) = child.stderr.take() {
+            std::thread::spawn(move || {
+                let mut buffer = [0u8; 2048];
+                let mut logged = 0;
+                while let Ok(count) = stderr.read(&mut buffer) {
+                    if count == 0 {
+                        break;
+                    }
+                    // Drain continuously, but cap native diagnostics at 64 KiB per worker.
+                    let keep = count.min(65536usize.saturating_sub(logged));
+                    if keep > 0 {
+                        warn!("NPU runtime: {}", String::from_utf8_lossy(&buffer[..keep]));
+                        logged += keep;
+                    }
+                }
+            });
+        }
         let mut stdin = child.stdin.take().ok_or("Missing worker stdin")?;
         let (requests, frames) = mpsc::channel::<Vec<u8>>();
         std::thread::spawn(move || {
@@ -110,7 +168,26 @@ impl Worker {
             requests,
             responses: rx,
         };
-        let ready = worker.response(LOAD_TIMEOUT)?;
+        let mut stage = "starting".to_string();
+        let mut tick = Instant::now();
+        let ready = wait_response(&worker.responses, LOAD_TIMEOUT, Some(cancel), |message| {
+            if let Some(next) = message
+                .and_then(|value| value.get("stage"))
+                .and_then(Value::as_str)
+            {
+                stage = next.to_string();
+                info!(
+                    "NPU load stage={} elapsed_ms={}",
+                    stage,
+                    started.elapsed().as_millis()
+                );
+                tick = Instant::now() - Duration::from_secs(1);
+            }
+            if tick.elapsed() >= Duration::from_secs(1) {
+                progress(app, &stage, started, true, None);
+                tick = Instant::now();
+            }
+        })?;
         if ready.get("ready").and_then(Value::as_bool) != Some(true)
             || ready.get("device").and_then(Value::as_str) != Some("NPU")
         {
@@ -122,15 +199,12 @@ impl Worker {
                     .unwrap_or("invalid device response")
             ));
         }
-        READY.store(true, Ordering::Release);
         info!("Whisper Turbo INT8 ready: OpenVINO device=NPU (no fallback)");
         Ok(worker)
     }
 
     fn response(&self, timeout: Duration) -> Result<Value, String> {
-        self.responses.recv_timeout(timeout).map_err(|e| {
-            format!("Intel NPU worker timed out or exited ({e}); retry to restart it")
-        })?
+        wait_response(&self.responses, timeout, None, |_| {})
     }
 
     fn transcribe(&mut self, audio: &[f32], language: Option<&str>) -> Result<String, String> {
@@ -160,6 +234,39 @@ impl Worker {
     }
 }
 
+fn wait_response(
+    responses: &mpsc::Receiver<Result<Value, String>>,
+    timeout: Duration,
+    cancel: Option<&AtomicBool>,
+    mut on_progress: impl FnMut(Option<&Value>),
+) -> Result<Value, String> {
+    let started = Instant::now();
+    loop {
+        if cancel.is_some_and(|flag| flag.load(Ordering::Acquire)) {
+            return Err("NPU model loading cancelled".into());
+        }
+        let remaining = timeout.checked_sub(started.elapsed()).ok_or(
+            "Intel NPU worker timed out; see the NPU runtime diagnostics in the application log",
+        )?;
+        match responses.recv_timeout(remaining.min(Duration::from_millis(100))) {
+            Ok(value) => {
+                let value = value?;
+                if value.get("stage").is_some() {
+                    on_progress(Some(&value));
+                } else {
+                    if cancel.is_some_and(|flag| flag.load(Ordering::Acquire)) {
+                        return Err("NPU model loading cancelled".into());
+                    }
+                    return Ok(value);
+                }
+            }
+            Err(mpsc::RecvTimeoutError::Timeout) => on_progress(None),
+            Err(mpsc::RecvTimeoutError::Disconnected) => return Err(
+                "Intel NPU worker exited before replying; see the NPU runtime diagnostics in the application log".into()),
+        }
+    }
+}
+
 fn language_token(language: Option<&str>) -> Option<String> {
     language
         .filter(|s| s.len() == 2 && s.bytes().all(|b| b.is_ascii_lowercase()))
@@ -169,12 +276,48 @@ fn language_token(language: Option<&str>) -> Option<String> {
 pub fn load(app: &AppHandle) -> Result<(), String> {
     let mut guard = slot().lock().map_err(|_| "NPU worker lock poisoned")?;
     if guard.is_none() {
-        *guard = Some(Worker::spawn(app)?);
+        let cancel = Arc::new(AtomicBool::new(false));
+        *ACTIVE_LOAD
+            .lock()
+            .map_err(|_| "NPU cancellation lock poisoned")? = Some(cancel.clone());
+        let _active_load = ActiveLoad;
+        let started = Instant::now();
+        progress(app, "starting", started, true, None);
+        let result = Worker::spawn(app, &cancel, started);
+        // Serialize the final ready commit with cancellation; never publish a cancelled worker.
+        let mut active = ACTIVE_LOAD
+            .lock()
+            .map_err(|_| "NPU cancellation lock poisoned")?;
+        let result = if cancel.load(Ordering::Acquire) {
+            drop(result);
+            Err("NPU model loading cancelled".to_string())
+        } else {
+            result
+        };
+        *active = None;
+        drop(active);
+        match result {
+            Ok(worker) => {
+                *guard = Some(worker);
+                READY.store(true, Ordering::Release);
+                progress(app, "ready", started, false, None);
+            }
+            Err(error) => {
+                let stage = if cancel.load(Ordering::Acquire) {
+                    "cancelled"
+                } else {
+                    "failed"
+                };
+                progress(app, stage, started, false, Some(&error));
+                return Err(error);
+            }
+        }
     }
     Ok(())
 }
 
 pub fn unload() {
+    cancel_load();
     if let Ok(mut guard) = slot().lock() {
         *guard = None;
     }
@@ -201,6 +344,57 @@ pub fn transcribe(audio: &[f32], language: Option<&str>) -> Result<String, Strin
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn cancellation_interrupts_a_silent_worker() {
+        let (_tx, rx) = mpsc::channel();
+        let flag = Arc::new(AtomicBool::new(false));
+        let other = flag.clone();
+        let started = Instant::now();
+        let thread = std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(30));
+            other.store(true, Ordering::Release);
+        });
+        let error = wait_response(&rx, Duration::from_secs(30), Some(&flag), |_| {}).unwrap_err();
+        thread.join().unwrap();
+        assert!(error.contains("cancelled"));
+        assert!(started.elapsed() < Duration::from_secs(2));
+    }
+
+    #[test]
+    fn progress_does_not_replace_ready_or_extend_deadline() {
+        let (tx, rx) = mpsc::channel();
+        tx.send(Ok(json!({"stage":"compiling"}))).unwrap();
+        tx.send(Ok(json!({"ready":true,"device":"NPU"}))).unwrap();
+        let mut stages = 0;
+        let result = wait_response(&rx, Duration::from_secs(1), None, |event| {
+            if event.is_some() {
+                stages += 1;
+            }
+        })
+        .unwrap();
+        assert_eq!(stages, 1);
+        assert_eq!(result["ready"], true);
+        let started = Instant::now();
+        let error = wait_response(&rx, Duration::from_millis(60), None, |_| {
+            let _ = tx.send(Ok(json!({"stage":"compiling"})));
+        })
+        .unwrap_err();
+        assert!(error.contains("timed out"));
+        assert!(started.elapsed() < Duration::from_secs(2));
+    }
+
+    #[test]
+    fn exited_worker_and_bad_json_are_errors() {
+        let (tx, rx) = mpsc::channel();
+        tx.send(Err("invalid JSON".into())).unwrap();
+        assert!(wait_response(&rx, Duration::from_secs(1), None, |_| {})
+            .unwrap_err()
+            .contains("invalid JSON"));
+        drop(tx);
+        assert!(wait_response(&rx, Duration::from_secs(1), None, |_| {})
+            .unwrap_err()
+            .contains("exited"));
+    }
     #[test]
     fn languages_are_validated() {
         assert_eq!(language_token(Some("fr")), Some("<|fr|>".into()));

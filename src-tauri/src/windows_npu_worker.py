@@ -7,10 +7,47 @@ Requires Intel NPU + openvino/openvino-genai and an exported OpenVINO Whisper mo
 import json
 import os
 import sys
+import re
+import subprocess
+import time
+import traceback
 
 
 MAX_SAMPLES = 16000 * 600
 PROTOCOL_OUT = None
+
+
+def windows_hardware():
+    """Read driver metadata without elevation; enumeration is not proof of compatibility."""
+    if sys.platform != "win32":
+        return {}
+    script = r'''[Console]::OutputEncoding = [Text.UTF8Encoding]::new();
+$d = Get-CimInstance Win32_PnPSignedDriver | Where-Object { $_.DeviceName -match 'Intel.*(NPU|AI Boost)' } | Select-Object -First 1;
+$c = Get-CimInstance Win32_Processor | Select-Object -First 1;
+@{cpu=$c.Name; driver=$d.DriverVersion; device_id=$d.DeviceID} | ConvertTo-Json -Compress'''
+    try:
+        result = subprocess.run(
+            ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script],
+            capture_output=True, encoding="utf-8", timeout=15, check=True,
+            creationflags=subprocess.CREATE_NO_WINDOW,
+        )
+        return json.loads(result.stdout.lstrip("\ufeff"))
+    except (OSError, subprocess.SubprocessError, ValueError) as exc:
+        print(f"NPU driver metadata unavailable: {exc}", file=sys.stderr, flush=True)
+        return {}
+
+
+def compatibility_error(hardware, runtime_version):
+    series3 = re.search(r"Core.*Ultra.*\b3\d{2}[A-Z]*\b", hardware.get("cpu") or "", re.I)
+    affected_runtime = re.match(r"2026\.(2|3|4)(?:\.|-)", runtime_version)
+    affected_driver = hardware.get("driver") in {
+        "32.0.100.4300", "32.0.100.4509", "32.0.100.4512",
+    }
+    if series3 and affected_runtime and affected_driver:
+        return (f"Intel NPU driver {hardware['driver']} is incompatible with OpenVINO "
+                f"{runtime_version} on Core Ultra Series 3 (Intel CVS-233822). "
+                "Update the NPU driver to 32.0.100.5540 or newer before loading this model.")
+    return None
 
 
 def write_message(payload):
@@ -75,17 +112,33 @@ def main():
         write_message({"ready": False, "error": "Expected model and writable cache directories"})
         return 2
     try:
+        started = time.monotonic()
+
+        def stage(name, **details):
+            write_message({"stage": name, "elapsed_ms": int((time.monotonic() - started) * 1000), **details})
+
+        stage("importing")
         import openvino
         import openvino_genai
 
+        stage("checking_driver")
+        hardware = windows_hardware()
+        print(json.dumps({"hardware": hardware, "openvino": openvino.__version__,
+                          "genai": openvino_genai.__version__}), file=sys.stderr, flush=True)
+        error = compatibility_error(hardware, openvino.__version__)
+        if error:
+            raise RuntimeError(error)
+        stage("detecting")
         # Do not silently run on CPU/GPU; a genuine Intel NPU must be present.
         devices = openvino.Core().available_devices
         if "NPU" not in devices:
             raise RuntimeError("Intel NPU is not visible to OpenVINO (available: %s)" % devices)
         os.makedirs(sys.argv[2], exist_ok=True)
+        stage("compiling")
         pipe = openvino_genai.WhisperPipeline(sys.argv[1], "NPU", CACHE_DIR=sys.argv[2])
         write_message({"ready": True, "device": "NPU"})
     except Exception as exc:
+        traceback.print_exc(file=sys.stderr)
         write_message({"ready": False, "error": str(exc)})
         return 1
 

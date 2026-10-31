@@ -28,6 +28,22 @@ class FakePipe:
 
 
 class WindowsNpuProtocolTests(unittest.TestCase):
+    def test_known_driver_incompatibility(self):
+        hardware = {'cpu': 'Intel(R) Core(TM) Ultra 7 355', 'driver': '32.0.100.4509'}
+        for version in ['2026.2.1-21919', '2026.3.1.0', '2026.4.0']:
+            with self.subTest(version=version):
+                self.assertIn('5540', npu.compatibility_error(hardware, version))
+        self.assertIsNone(npu.compatibility_error(hardware, '2026.1.0'))
+        hardware['driver'] = '32.0.100.5540'
+        self.assertIsNone(npu.compatibility_error(hardware, '2026.2.1'))
+
+    def test_driver_check_does_not_block_other_hardware_or_unknown_versions(self):
+        self.assertIsNone(npu.compatibility_error({}, '2026.2.1'))
+        self.assertIsNone(npu.compatibility_error(
+            {'cpu': 'Intel Core Ultra 7 258V', 'driver': '32.0.100.4509'}, '2026.2.1'))
+        self.assertIsNone(npu.compatibility_error(
+            {'cpu': 'Intel Core Ultra 7 355', 'driver': None}, '2026.2.1'))
+
     def test_pcm_and_language(self):
         pipe = FakePipe()
         reader = io.BytesIO(struct.pack("<3f", 0.0, 0.125, -0.25))

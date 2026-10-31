@@ -39,8 +39,10 @@ try {
     $devices = ($probe | ConvertFrom-Json).devices
     if ('NPU' -notin $devices) {
         $output = & (Join-Path $npu 'worker/handy-npu-worker.exe') (Join-Path $npu 'model') (Join-Path $env:TEMP 'handy-npu-smoke-cache')
-        $failure = $output | ConvertFrom-Json
-        if ($LASTEXITCODE -eq 0 -or $failure.ready -ne $false -or $failure.error -notmatch 'NPU') { throw 'Expected explicit NPU-unavailable failure' }
+        $workerExitCode = $LASTEXITCODE
+        $messages = @($output | ForEach-Object { $_ | ConvertFrom-Json })
+        $failures = @($messages | Where-Object { $_.PSObject.Properties.Name -contains 'ready' })
+        if ($workerExitCode -eq 0 -or $failures.Count -ne 1 -or $failures[0].ready -ne $false -or $failures[0].error -notmatch 'NPU') { throw 'Expected explicit NPU-unavailable failure' }
     }
     $inventory = Get-Content (Join-Path $npu 'inventory.json') -Raw | ConvertFrom-Json
     foreach ($entry in $inventory) {

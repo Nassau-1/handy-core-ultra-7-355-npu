@@ -733,5 +733,23 @@
     "learnMore": "Comment résoudre ce problème",
     "recorderBlocked": "Impossible d'enregistrer un raccourci pour le moment : Secure Input de macOS bloque les événements clavier. Résolvez d'abord l'avertissement Secure Input.",
     "dismiss": "Ignorer"
+  },
+  "npuLoading": {
+    "stages": {
+      "starting": "Démarrage du modèle Intel NPU",
+      "importing": "Chargement du moteur de transcription",
+      "checking_driver": "Vérification du pilote Intel NPU",
+      "detecting": "Détection du NPU",
+      "compiling": "Préparation du modèle pour le NPU",
+      "cancelled": "Chargement du modèle annulé",
+      "failed": "Le modèle NPU n’a pas pu se charger"
+    },
+    "elapsed": "{{seconds}} s écoulées",
+    "hint": "La première préparation peut prendre plusieurs minutes. Les chargements suivants réutilisent le cache local. Vous pouvez annuler à tout moment.",
+    "cancel": "Annuler le chargement",
+    "cancelling": "Annulation…",
+    "dismiss": "Fermer",
+    "unmeasured": "La vitesse et la précision n’ont pas été mesurées sur ce NPU. Pour dicter en français et en anglais, commencez avec la langue Auto.",
+    "estimatedScores": "Notes indicatives du catalogue, sans mesure sur cet ordinateur."
   }
 }

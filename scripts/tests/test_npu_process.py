@@ -34,7 +34,12 @@ class WhisperPipeline:
             env = os.environ.copy()
             env["PYTHONPATH"] = str(root)
             args = ["--probe"] if probe else [str(root / "model"), str(root / "cache")]
-            result = subprocess.run([sys.executable, str(WORKER), *args], input=audio,
+            # Test transport independently of the host's installed driver.
+            runner = ("import runpy,sys; path=sys.argv.pop(1); "
+                      "ns=runpy.run_path(path,run_name='worker_test'); "
+                      "ns['main'].__globals__['windows_hardware']=lambda:{}; "
+                      "sys.exit(ns['main']())")
+            result = subprocess.run([sys.executable, "-c", runner, str(WORKER), *args], input=audio,
                                     capture_output=True, timeout=10, env=env)
             return result, [json.loads(line) for line in result.stdout.decode("utf-8").splitlines()]
 
@@ -46,6 +51,9 @@ class WhisperPipeline:
     def test_two_languages_and_native_noise_stays_off_protocol(self):
         result, messages = self.run_worker(self.frame("<|fr|>") + self.frame("<|en|>"))
         self.assertEqual(result.returncode, 0)
+        self.assertEqual([msg['stage'] for msg in messages if 'stage' in msg],
+                         ['importing', 'checking_driver', 'detecting', 'compiling'])
+        messages = [msg for msg in messages if 'stage' not in msg]
         self.assertEqual(messages, [{"ready": True, "device": "NPU"},
                                     {"ok": True, "text": "<|fr|>"},
                                     {"ok": True, "text": "<|en|>"}])
@@ -54,8 +62,10 @@ class WhisperPipeline:
     def test_no_npu_fails_without_fallback(self):
         result, messages = self.run_worker(devices="['CPU', 'GPU']")
         self.assertEqual(result.returncode, 1)
-        self.assertFalse(messages[0]["ready"])
-        self.assertIn("NPU is not visible", messages[0]["error"])
+        self.assertFalse(messages[-1]["ready"])
+        self.assertIn("NPU is not visible", messages[-1]["error"])
+        self.assertNotIn('compiling', [msg.get('stage') for msg in messages])
+        self.assertIn(b'Traceback', result.stderr)
 
     def test_partial_frame_exits_with_explicit_error(self):
         result, messages = self.run_worker(b'{"samples": 4}\n\x00')

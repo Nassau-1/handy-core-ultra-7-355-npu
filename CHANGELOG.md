@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-31 — Unreleased, validation in progress
+
+- Preserve NPU worker diagnostics and display loading stages and elapsed time.
+- Cancel initialization through an independent signal and terminate the worker on cancellation.
+- Detect the known Core Ultra Series 3 / OpenVINO 2026.2–2026.4 driver incompatibility before compilation.
+- Hide unmeasured NPU catalog ratings and label other ratings as estimates.
+- Hardware, native build and end-to-end validation remain pending; this change is not installed or released.
+
 ## 2026-10-30 — 0.10.0 preview
 
 - Forked Handy through Bbrizly's Windows NPU branch d05dce78d878b59733c4dfc6528484eb05436790.

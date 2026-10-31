@@ -733,5 +733,23 @@
     "learnMore": "How to fix",
     "recorderBlocked": "Can't record shortcuts right now — macOS Secure Input is blocking key events. Resolve the Secure Input warning first.",
     "dismiss": "Dismiss"
+  },
+  "npuLoading": {
+    "stages": {
+      "starting": "Starting the Intel NPU model",
+      "importing": "Loading the inference runtime",
+      "checking_driver": "Checking the Intel NPU driver",
+      "detecting": "Detecting the NPU",
+      "compiling": "Preparing the model for the NPU",
+      "cancelled": "Model loading cancelled",
+      "failed": "The NPU model could not load"
+    },
+    "elapsed": "{{seconds}} s elapsed",
+    "hint": "The first preparation can take several minutes. Later loads reuse the local cache. You can cancel at any time.",
+    "cancel": "Cancel loading",
+    "cancelling": "Cancelling…",
+    "dismiss": "Dismiss",
+    "unmeasured": "Speed and accuracy have not been measured on this NPU. For French/English dictation, start with language set to Auto.",
+    "estimatedScores": "Indicative catalog ratings, not measurements on this computer."
   }
 }
