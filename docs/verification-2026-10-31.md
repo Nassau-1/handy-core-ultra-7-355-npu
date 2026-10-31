@@ -197,5 +197,11 @@ The application WAV loader divides int16 by 32,767 (the Python soundfile fixture
 path uses 32,768), and Handy normalizes spaces. Native output has minor additional
 punctuation/casing/hyphen differences; byte equality is not claimed. Unicode word
 sequences match. Input of 600 seconds plus one sample returns exit 1 with the
-explicit ten-minute limit and no successful transcript. Permanent upgrade is
-awaiting Windows elevation.
+explicit ten-minute limit and no successful transcript.
+
+Windows cancelled the elevation request before MSI execution; Program Files
+still contains the accepted 40-second build. The extracted ten-minute build is
+running as the temporary local test application. Its GUI successfully loaded
+`Nemotron 3.5 · Intel NPU · 10 min`, shows it active, and retains Ctrl+Space,
+automatic language detection and the default microphone. Permanent upgrade is
+pending a new user-assisted Windows elevation; it is not claimed complete.
