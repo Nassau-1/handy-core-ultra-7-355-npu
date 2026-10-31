@@ -1161,6 +1161,20 @@ impl ModelManager {
                 supported_languages: whisper_languages.clone(), supports_language_selection: true,
                 is_custom: false, supports_streaming: false, supports_language_detection: true,
             });
+            // Optional, locally validated pilot payload. Never advertise a download
+            // or silently substitute it for the bundled Whisper model.
+            if crate::windows_npu::nemotron_available(app_handle) {
+                let mut pilot = available_models[crate::windows_npu::MODEL_ID].clone();
+                pilot.id = crate::windows_npu::NEMOTRON_MODEL_ID.into();
+                pilot.name = "Nemotron 3.5 · Intel NPU (pilot)".into();
+                pilot.description = "Local NPU dictation in French, English and mixed speech. Experimental: maximum 40 seconds per dictation; longer recordings are rejected without truncation. First preparation may take several minutes; later starts reuse the cache.".into();
+                pilot.filename = crate::windows_npu::NEMOTRON_MODEL_ID.into();
+                pilot.size_mb = 2435;
+                pilot.is_downloaded = true;
+                pilot.is_recommended = false;
+                pilot.supported_languages = vec!["fr".into(), "en".into()];
+                available_models.insert(pilot.id.clone(), pilot);
+            }
         }
 
         // Seed the bundled offline catalog before the on-disk scans, so a model
@@ -1218,8 +1232,8 @@ impl ModelManager {
         list.sort_by(|a, b| {
             #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
             {
-                let npu_order = (b.id == crate::windows_npu::MODEL_ID)
-                    .cmp(&(a.id == crate::windows_npu::MODEL_ID));
+                let npu_order = crate::windows_npu::is_npu_model(&b.id)
+                    .cmp(&crate::windows_npu::is_npu_model(&a.id));
                 if npu_order != std::cmp::Ordering::Equal {
                     return npu_order;
                 }
@@ -1440,6 +1454,11 @@ impl ModelManager {
         let mut vanished_models: Vec<String> = Vec::new();
 
         for model in models.values_mut() {
+            #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
+            if model.id == crate::windows_npu::NEMOTRON_MODEL_ID {
+                model.is_downloaded = crate::windows_npu::nemotron_available(&self.app_handle);
+                continue;
+            }
             #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
             if model.id == crate::windows_npu::MODEL_ID {
                 model.is_downloaded = crate::windows_npu::bundled_model_available(&self.app_handle);
@@ -2457,6 +2476,10 @@ impl ModelManager {
 
     pub fn delete_model(&self, model_id: &str) -> Result<()> {
         #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
+        if model_id == crate::windows_npu::NEMOTRON_MODEL_ID {
+            anyhow::bail!("This local NPU pilot is managed separately from downloaded models.");
+        }
+        #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
         if model_id == crate::windows_npu::MODEL_ID {
             anyhow::bail!("This model is bundled with the application. Uninstall the NPU edition to remove it.");
         }
@@ -2626,6 +2649,10 @@ impl ModelManager {
     }
 
     pub fn get_model_path(&self, model_id: &str) -> Result<PathBuf> {
+        #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
+        if model_id == crate::windows_npu::NEMOTRON_MODEL_ID {
+            return crate::windows_npu::nemotron_dir(&self.app_handle).map_err(anyhow::Error::msg);
+        }
         #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
         if model_id == crate::windows_npu::MODEL_ID {
             return crate::windows_npu::model_dir(&self.app_handle).map_err(anyhow::Error::msg);

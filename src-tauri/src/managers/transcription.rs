@@ -379,7 +379,11 @@ impl TranscriptionManager {
 
     pub fn is_model_loaded(&self) -> bool {
         #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
-        if self.get_current_model().as_deref() == Some(crate::windows_npu::MODEL_ID) {
+        if self
+            .get_current_model()
+            .as_deref()
+            .is_some_and(crate::windows_npu::is_npu_model)
+        {
             return crate::windows_npu::is_ready();
         }
         // A transcribe-cpp model stays loaded while it is busy, so a batch
@@ -686,7 +690,7 @@ impl TranscriptionManager {
             EngineType::OpenVinoNpu => {
                 #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
                 {
-                    crate::windows_npu::load(&self.app_handle).map_err(|e| {
+                    crate::windows_npu::load(&self.app_handle, model_id).map_err(|e| {
                         emit_loading_failed(&e);
                         anyhow::anyhow!(e)
                     })?;
@@ -840,7 +844,10 @@ impl TranscriptionManager {
     /// model is loaded.
     pub fn current_backend(&self) -> Option<String> {
         #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
-        if self.get_current_model().as_deref() == Some(crate::windows_npu::MODEL_ID)
+        if self
+            .get_current_model()
+            .as_deref()
+            .is_some_and(crate::windows_npu::is_npu_model)
             && crate::windows_npu::is_ready()
         {
             return Some("OpenVINO NPU".into());
@@ -1218,7 +1225,7 @@ impl TranscriptionManager {
 
         // The NPU selection is explicit and never falls through to another engine.
         #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
-        let npu_run = if active_model == crate::windows_npu::MODEL_ID {
+        let npu_run = if crate::windows_npu::is_npu_model(&active_model) {
             let text = crate::windows_npu::transcribe(&audio, Some(&validated_language))
                 .map_err(anyhow::Error::msg)?;
             Some(RunOutcome {

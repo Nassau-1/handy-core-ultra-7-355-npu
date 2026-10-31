@@ -12,6 +12,38 @@ use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter, Manager};
 
 pub const MODEL_ID: &str = "openvino-turbo-int8-npu";
+pub const NEMOTRON_MODEL_ID: &str = "nemotron-35-npu-pilot";
+
+pub fn is_npu_model(model_id: &str) -> bool {
+    matches!(model_id, MODEL_ID | NEMOTRON_MODEL_ID)
+}
+
+pub fn nemotron_dir(app: &AppHandle) -> Result<PathBuf, String> {
+    app.path()
+        .app_local_data_dir()
+        .map(|p| p.join("nemotron-npu-pilot"))
+        .map_err(|e| e.to_string())
+}
+
+pub fn nemotron_available(app: &AppHandle) -> bool {
+    nemotron_dir(app).is_ok_and(|root| {
+        [
+            "worker/nemotron-npu.exe",
+            "artifact/encoder.xml",
+            "artifact/encoder.bin",
+            "artifact/predictor.xml",
+            "artifact/predictor.bin",
+            "artifact/joint.xml",
+            "artifact/joint.bin",
+            "artifact/frontend.npz",
+            "artifact/metadata.json",
+            "tokenizer/tokenizer.json",
+            "tokenizer/processor_config.json",
+        ]
+        .iter()
+        .all(|file| root.join(file).is_file())
+    })
+}
 const MAX_AUDIO_SAMPLES: usize = 16_000 * 600;
 const LOAD_TIMEOUT: Duration = Duration::from_secs(20 * 60);
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(120);
@@ -92,6 +124,7 @@ pub fn is_ready() -> bool {
 
 struct Worker {
     child: Child,
+    max_samples: usize,
     requests: mpsc::Sender<Vec<u8>>,
     responses: mpsc::Receiver<Result<Value, String>>,
 }
@@ -107,10 +140,26 @@ impl Drop for Worker {
 }
 
 impl Worker {
-    fn spawn(app: &AppHandle, cancel: &AtomicBool, started: Instant) -> Result<Self, String> {
+    fn spawn(
+        app: &AppHandle,
+        model_id: &str,
+        cancel: &AtomicBool,
+        started: Instant,
+    ) -> Result<Self, String> {
         let resources = app.path().resource_dir().map_err(|e| e.to_string())?;
-        let exe = resources.join("resources/npu/worker/handy-npu-worker.exe");
-        if !exe.is_file() || !bundled_model_available(app) {
+        let nemotron = model_id == NEMOTRON_MODEL_ID;
+        let exe = if nemotron {
+            nemotron_dir(app)?.join("worker/nemotron-npu.exe")
+        } else {
+            resources.join("resources/npu/worker/handy-npu-worker.exe")
+        };
+        if !exe.is_file()
+            || !(if nemotron {
+                nemotron_available(app)
+            } else {
+                bundled_model_available(app)
+            })
+        {
             return Err(
                 "Bundled NPU runtime/model missing. Repair the installation from Company Portal."
                     .into(),
@@ -120,10 +169,27 @@ impl Worker {
             .path()
             .app_local_data_dir()
             .map_err(|e| e.to_string())?
-            .join("npu-cache/2026.2.1-turbo-4929ae83");
+            .join(if nemotron {
+                "npu-cache/2026.2.1-nemotron-ea30d66-4096"
+            } else {
+                "npu-cache/2026.2.1-turbo-4929ae83"
+            });
         std::fs::create_dir_all(&cache).map_err(|e| e.to_string())?;
-        let mut child = Command::new(exe)
-            .args([model_dir(app)?, cache])
+        let mut command = Command::new(exe);
+        if nemotron {
+            let root = nemotron_dir(app)?;
+            command
+                .arg("--artifact")
+                .arg(root.join("artifact"))
+                .arg("--model")
+                .arg(root.join("tokenizer"))
+                .arg("--cache")
+                .arg(cache)
+                .arg("--worker");
+        } else {
+            command.args([model_dir(app)?, cache]);
+        }
+        let mut child = command
             .creation_flags(0x08000000)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
@@ -168,8 +234,9 @@ impl Worker {
                 }
             }
         });
-        let worker = Self {
+        let mut worker = Self {
             child,
+            max_samples: MAX_AUDIO_SAMPLES,
             requests,
             responses: rx,
         };
@@ -204,7 +271,13 @@ impl Worker {
                     .unwrap_or("invalid device response")
             ));
         }
-        info!("Whisper Turbo INT8 ready: OpenVINO device=NPU (no fallback)");
+        worker.max_samples = ready
+            .get("max_samples")
+            .and_then(Value::as_u64)
+            .and_then(|n| usize::try_from(n).ok())
+            .filter(|n| *n > 0 && *n <= MAX_AUDIO_SAMPLES)
+            .unwrap_or(MAX_AUDIO_SAMPLES);
+        info!("{} ready: OpenVINO device=NPU (no fallback)", model_id);
         Ok(worker)
     }
 
@@ -213,6 +286,9 @@ impl Worker {
     }
 
     fn transcribe(&mut self, audio: &[f32], language: Option<&str>) -> Result<String, String> {
+        if audio.len() > self.max_samples {
+            return Err(format!("This NPU model supports at most {:.1} seconds per dictation; audio was not truncated.", self.max_samples as f64 / 16_000.0));
+        }
         let header = json!({"samples": audio.len(), "language": language_token(language), "translate": false});
         let mut frame = header.to_string().into_bytes();
         frame.push(b'\n');
@@ -278,7 +354,10 @@ fn language_token(language: Option<&str>) -> Option<String> {
         .map(|s| format!("<|{s}|>"))
 }
 
-pub fn load(app: &AppHandle) -> Result<(), String> {
+pub fn load(app: &AppHandle, model_id: &str) -> Result<(), String> {
+    if !is_npu_model(model_id) {
+        return Err("Unknown NPU model".into());
+    }
     let mut guard = slot().lock().map_err(|_| "NPU worker lock poisoned")?;
     if guard.is_none() {
         let cancel = Arc::new(AtomicBool::new(false));
@@ -288,7 +367,7 @@ pub fn load(app: &AppHandle) -> Result<(), String> {
         let _active_load = ActiveLoad;
         let started = Instant::now();
         progress(app, "starting", started, true, None);
-        let result = Worker::spawn(app, &cancel, started);
+        let result = Worker::spawn(app, model_id, &cancel, started);
         // Serialize the final ready commit with cancellation; never publish a cancelled worker.
         let mut active = ACTIVE_LOAD
             .lock()
@@ -405,6 +484,13 @@ mod tests {
         assert_eq!(language_token(Some("fr")), Some("<|fr|>".into()));
         assert_eq!(language_token(Some("auto")), None);
         assert_eq!(language_token(Some("fr\n")), None);
+    }
+    #[test]
+    fn npu_models_are_explicitly_identified() {
+        assert!(is_npu_model(MODEL_ID));
+        assert!(is_npu_model(NEMOTRON_MODEL_ID));
+        assert!(!is_npu_model("nemotron-streaming-gguf"));
+        assert!(!is_npu_model(""));
     }
     #[test]
     fn invalid_audio_is_rejected_before_worker_access() {

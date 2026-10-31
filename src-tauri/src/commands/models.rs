@@ -70,6 +70,10 @@ pub async fn delete_model(
     model_id: String,
 ) -> Result<(), String> {
     #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
+    if model_id == crate::windows_npu::NEMOTRON_MODEL_ID {
+        return Err("This local NPU pilot is managed separately from downloaded models.".into());
+    }
+    #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
     if model_id == crate::windows_npu::MODEL_ID {
         return Err(
             "This model is bundled with the application. Uninstall the NPU edition to remove it."

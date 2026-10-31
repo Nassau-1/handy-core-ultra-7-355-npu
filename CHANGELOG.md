@@ -6,7 +6,9 @@
 - Cancel initialization through an independent signal and terminate the worker on cancellation.
 - Detect the known Core Ultra Series 3 / OpenVINO 2026.2–2026.4 driver incompatibility before compilation.
 - Hide unmeasured NPU catalog ratings and label other ratings as estimates.
-- Hardware, native build and end-to-end validation remain pending; this change is not installed or released.
+- Validate the loading fix in Windows CI and on the pilot: progress, elapsed time and real worker cancellation.
+- Add a pinned Nemotron 3.5 ASR NPU prototype, lightweight PCM runtime and optional distinct local pilot model; application integration validation remains pending.
+- Verify explicit NPU execution and reference-token parity on synthetic French, English, mixed and 24-second speech fixtures.
 
 ## 2026-10-30 — 0.10.0 preview
 

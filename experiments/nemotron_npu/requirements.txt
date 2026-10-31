@@ -1,0 +1,9 @@
+# Install the CPU-only torch wheel from https://download.pytorch.org/whl/cpu
+torch==2.15.0
+transformers==5.13.0
+openvino==2026.2.1
+numpy==2.4.6
+soundfile==0.14.0
+librosa==1.0.0
+accelerate==1.15.0
+psutil==7.2.2

@@ -48,3 +48,17 @@ devices / All Users** assignment was verified. No Required assignment was create
 Standard-user installation through Company Portal and real NPU execution remain
 unverified; the target is unavailable. CI proves packaging behavior, not endpoint
 policy acceptance or NPU performance.
+
+## Pilot follow-up — 2026-10-31
+
+The pilot is now available. Driver 32.0.100.5540 was installed and the machine
+rebooted. A small NPU arithmetic test succeeds, but the bundled Whisper Turbo
+model did not finish loading before the test was stopped after 18 minutes due to
+fan noise. The CPU performs model compilation before NPU inference starts; an
+idle NPU graph during compilation is not evidence of CPU inference fallback.
+
+Whisper Turbo Q8 on Intel Graphics is the working pilot configuration. The owner
+confirmed microphone capture, Ctrl+Space and insertion into Notepad. See the
+[pilot verification record](verification-2026-10-31.md) for timings and limits.
+Do not advertise the NPU model as hardware-validated or roll the loading patch
+out through Intune based solely on CI results.
