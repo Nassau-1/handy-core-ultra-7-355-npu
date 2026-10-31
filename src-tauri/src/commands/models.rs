@@ -70,7 +70,7 @@ pub async fn delete_model(
     model_id: String,
 ) -> Result<(), String> {
     #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
-    if model_id == crate::windows_npu::NEMOTRON_MODEL_ID {
+    if crate::windows_npu::is_nemotron_model(&model_id) {
         return Err("This local NPU pilot is managed separately from downloaded models.".into());
     }
     #[cfg(all(target_os = "windows", target_arch = "x86_64"))]

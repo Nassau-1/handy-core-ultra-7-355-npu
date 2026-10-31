@@ -13,24 +13,32 @@ use tauri::{AppHandle, Emitter, Manager};
 
 pub const MODEL_ID: &str = "openvino-turbo-int8-npu";
 pub const NEMOTRON_MODEL_ID: &str = "nemotron-35-npu-pilot";
+pub const NEMOTRON_STREAM_MODEL_ID: &str = "nemotron-35-npu-ten-minute";
 
-pub fn is_npu_model(model_id: &str) -> bool {
-    matches!(model_id, MODEL_ID | NEMOTRON_MODEL_ID)
+pub fn is_nemotron_model(model_id: &str) -> bool {
+    matches!(model_id, NEMOTRON_MODEL_ID | NEMOTRON_STREAM_MODEL_ID)
 }
 
-pub fn nemotron_dir(app: &AppHandle) -> Result<PathBuf, String> {
+pub fn is_npu_model(model_id: &str) -> bool {
+    model_id == MODEL_ID || is_nemotron_model(model_id)
+}
+
+pub fn nemotron_dir_for(app: &AppHandle, model_id: &str) -> Result<PathBuf, String> {
+    let directory = match model_id {
+        NEMOTRON_MODEL_ID => "nemotron-npu-pilot",
+        NEMOTRON_STREAM_MODEL_ID => "nemotron-npu-streaming",
+        _ => return Err("Unknown local Nemotron model".into()),
+    };
     app.path()
         .app_local_data_dir()
-        .map(|p| p.join("nemotron-npu-pilot"))
+        .map(|p| p.join(directory))
         .map_err(|e| e.to_string())
 }
 
-pub fn nemotron_available(app: &AppHandle) -> bool {
-    nemotron_dir(app).is_ok_and(|root| {
-        [
+pub fn nemotron_available_for(app: &AppHandle, model_id: &str) -> bool {
+    nemotron_dir_for(app, model_id).is_ok_and(|root| {
+        let common = [
             "worker/nemotron-npu.exe",
-            "artifact/encoder.xml",
-            "artifact/encoder.bin",
             "artifact/predictor.xml",
             "artifact/predictor.bin",
             "artifact/joint.xml",
@@ -39,9 +47,18 @@ pub fn nemotron_available(app: &AppHandle) -> bool {
             "artifact/metadata.json",
             "tokenizer/tokenizer.json",
             "tokenizer/processor_config.json",
-        ]
-        .iter()
-        .all(|file| root.join(file).is_file())
+        ];
+        let encoders: &[&str] = if model_id == NEMOTRON_STREAM_MODEL_ID {
+            &["encoder_stream", "subsampler_first", "subsampler_step"]
+        } else {
+            &["encoder"]
+        };
+        common.iter().all(|file| root.join(file).is_file())
+            && encoders.iter().all(|name| {
+                ["xml", "bin"]
+                    .iter()
+                    .all(|extension| root.join(format!("artifact/{name}.{extension}")).is_file())
+            })
     })
 }
 const MAX_AUDIO_SAMPLES: usize = 16_000 * 600;
@@ -147,15 +164,15 @@ impl Worker {
         started: Instant,
     ) -> Result<Self, String> {
         let resources = app.path().resource_dir().map_err(|e| e.to_string())?;
-        let nemotron = model_id == NEMOTRON_MODEL_ID;
+        let nemotron = is_nemotron_model(model_id);
         let exe = if nemotron {
-            nemotron_dir(app)?.join("worker/nemotron-npu.exe")
+            nemotron_dir_for(app, model_id)?.join("worker/nemotron-npu.exe")
         } else {
             resources.join("resources/npu/worker/handy-npu-worker.exe")
         };
         if !exe.is_file()
             || !(if nemotron {
-                nemotron_available(app)
+                nemotron_available_for(app, model_id)
             } else {
                 bundled_model_available(app)
             })
@@ -169,15 +186,15 @@ impl Worker {
             .path()
             .app_local_data_dir()
             .map_err(|e| e.to_string())?
-            .join(if nemotron {
-                "npu-cache/2026.2.1-nemotron-ea30d66-4096"
-            } else {
-                "npu-cache/2026.2.1-turbo-4929ae83"
+            .join(match model_id {
+                NEMOTRON_STREAM_MODEL_ID => "npu-cache/2026.2.1-nemotron-ea30d66-stream64-v1",
+                NEMOTRON_MODEL_ID => "npu-cache/2026.2.1-nemotron-ea30d66-4096",
+                _ => "npu-cache/2026.2.1-turbo-4929ae83",
             });
         std::fs::create_dir_all(&cache).map_err(|e| e.to_string())?;
         let mut command = Command::new(exe);
         if nemotron {
-            let root = nemotron_dir(app)?;
+            let root = nemotron_dir_for(app, model_id)?;
             command
                 .arg("--artifact")
                 .arg(root.join("artifact"))
@@ -489,6 +506,9 @@ mod tests {
     fn npu_models_are_explicitly_identified() {
         assert!(is_npu_model(MODEL_ID));
         assert!(is_npu_model(NEMOTRON_MODEL_ID));
+        assert!(is_npu_model(NEMOTRON_STREAM_MODEL_ID));
+        assert!(is_nemotron_model(NEMOTRON_STREAM_MODEL_ID));
+        assert!(!is_nemotron_model(MODEL_ID));
         assert!(!is_npu_model("nemotron-streaming-gguf"));
         assert!(!is_npu_model(""));
     }

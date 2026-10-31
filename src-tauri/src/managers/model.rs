@@ -1163,12 +1163,22 @@ impl ModelManager {
             });
             // Optional, locally validated pilot payload. Never advertise a download
             // or silently substitute it for the bundled Whisper model.
-            if crate::windows_npu::nemotron_available(app_handle) {
+            for (id, name, description) in [
+                (crate::windows_npu::NEMOTRON_MODEL_ID,
+                 "Nemotron 3.5 · Intel NPU (pilot)",
+                 "Local NPU dictation in French, English and mixed speech. Experimental: maximum 40 seconds per dictation; longer recordings are rejected without truncation. First preparation may take several minutes; later starts reuse the cache."),
+                (crate::windows_npu::NEMOTRON_STREAM_MODEL_ID,
+                 "Nemotron 3.5 · Intel NPU · 10 min",
+                 "Local NPU dictation in French, English and mixed speech, up to 10 minutes. Text is inserted after recording stops. Context is preserved between audio fragments. Longer recordings are rejected without truncation."),
+            ] {
+                if !crate::windows_npu::nemotron_available_for(app_handle, id) {
+                    continue;
+                }
                 let mut pilot = available_models[crate::windows_npu::MODEL_ID].clone();
-                pilot.id = crate::windows_npu::NEMOTRON_MODEL_ID.into();
-                pilot.name = "Nemotron 3.5 · Intel NPU (pilot)".into();
-                pilot.description = "Local NPU dictation in French, English and mixed speech. Experimental: maximum 40 seconds per dictation; longer recordings are rejected without truncation. First preparation may take several minutes; later starts reuse the cache.".into();
-                pilot.filename = crate::windows_npu::NEMOTRON_MODEL_ID.into();
+                pilot.id = id.into();
+                pilot.name = name.into();
+                pilot.description = description.into();
+                pilot.filename = id.into();
                 pilot.size_mb = 2435;
                 pilot.is_downloaded = true;
                 pilot.is_recommended = false;
@@ -1455,8 +1465,9 @@ impl ModelManager {
 
         for model in models.values_mut() {
             #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
-            if model.id == crate::windows_npu::NEMOTRON_MODEL_ID {
-                model.is_downloaded = crate::windows_npu::nemotron_available(&self.app_handle);
+            if crate::windows_npu::is_nemotron_model(&model.id) {
+                model.is_downloaded =
+                    crate::windows_npu::nemotron_available_for(&self.app_handle, &model.id);
                 continue;
             }
             #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
@@ -2476,7 +2487,7 @@ impl ModelManager {
 
     pub fn delete_model(&self, model_id: &str) -> Result<()> {
         #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
-        if model_id == crate::windows_npu::NEMOTRON_MODEL_ID {
+        if crate::windows_npu::is_nemotron_model(model_id) {
             anyhow::bail!("This local NPU pilot is managed separately from downloaded models.");
         }
         #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
@@ -2650,8 +2661,9 @@ impl ModelManager {
 
     pub fn get_model_path(&self, model_id: &str) -> Result<PathBuf> {
         #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
-        if model_id == crate::windows_npu::NEMOTRON_MODEL_ID {
-            return crate::windows_npu::nemotron_dir(&self.app_handle).map_err(anyhow::Error::msg);
+        if crate::windows_npu::is_nemotron_model(model_id) {
+            return crate::windows_npu::nemotron_dir_for(&self.app_handle, model_id)
+                .map_err(anyhow::Error::msg);
         }
         #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
         if model_id == crate::windows_npu::MODEL_ID {
