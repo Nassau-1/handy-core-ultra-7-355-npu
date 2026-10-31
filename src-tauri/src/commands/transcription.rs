@@ -54,13 +54,21 @@ pub fn cancel_npu_load() -> bool {
 
 #[tauri::command]
 #[specta::specta]
-pub fn get_npu_load_status() -> serde_json::Value {
+pub fn get_npu_load_status() -> Option<NpuLoadStatus> {
     #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
     {
         return crate::windows_npu::load_status();
     }
     #[cfg(not(all(target_os = "windows", target_arch = "x86_64")))]
     {
-        serde_json::Value::Null
+        None
     }
+}
+
+#[derive(Clone, serde::Serialize, specta::Type)]
+pub struct NpuLoadStatus {
+    pub stage: String,
+    pub elapsed_ms: u32,
+    pub active: bool,
+    pub error: Option<String>,
 }

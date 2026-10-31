@@ -1,4 +1,5 @@
 //! Bundled, explicit Intel NPU backend. Errors never select a different device.
+use crate::commands::transcription::NpuLoadStatus;
 use log::{info, warn};
 use serde_json::{json, Value};
 use std::io::{BufRead, BufReader, Read, Write};
@@ -17,21 +18,25 @@ const REQUEST_TIMEOUT: Duration = Duration::from_secs(120);
 static WORKER: OnceLock<Mutex<Option<Worker>>> = OnceLock::new();
 static READY: AtomicBool = AtomicBool::new(false);
 static ACTIVE_LOAD: Mutex<Option<Arc<AtomicBool>>> = Mutex::new(None);
-static LOAD_STATUS: OnceLock<Mutex<Value>> = OnceLock::new();
+static LOAD_STATUS: OnceLock<Mutex<Option<NpuLoadStatus>>> = OnceLock::new();
 
-pub fn load_status() -> Value {
+pub fn load_status() -> Option<NpuLoadStatus> {
     LOAD_STATUS
-        .get_or_init(|| Mutex::new(Value::Null))
+        .get_or_init(|| Mutex::new(None))
         .lock()
         .map(|status| status.clone())
-        .unwrap_or(Value::Null)
+        .unwrap_or(None)
 }
 
 fn progress(app: &AppHandle, stage: &str, started: Instant, active: bool, error: Option<&str>) {
-    let status = json!({"stage": stage, "elapsed_ms": started.elapsed().as_millis() as u64,
-        "active": active, "error": error});
-    if let Ok(mut stored) = LOAD_STATUS.get_or_init(|| Mutex::new(Value::Null)).lock() {
-        *stored = status.clone();
+    let status = NpuLoadStatus {
+        stage: stage.to_string(),
+        elapsed_ms: started.elapsed().as_millis().min(u32::MAX as u128) as u32,
+        active,
+        error: error.map(str::to_string),
+    };
+    if let Ok(mut stored) = LOAD_STATUS.get_or_init(|| Mutex::new(None)).lock() {
+        *stored = Some(status.clone());
     }
     let _ = app.emit("npu-load-progress", status);
 }
