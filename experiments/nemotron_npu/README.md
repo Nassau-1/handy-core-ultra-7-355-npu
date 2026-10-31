@@ -1,8 +1,7 @@
 # Nemotron NPU experiment
 
 Experimental architecture-specific implementation with an optional local Handy
-pilot. It is not enabled automatically and does not claim validated streaming
-performance. All three neural graphs run on NPU; CPU handles audio preparation,
+pilot. It is not enabled automatically. All neural graphs run on NPU; CPU handles audio preparation,
 token control flow and text decoding.
 
 ## Reference
@@ -29,9 +28,40 @@ per-frame guard matches the reference greedy decoder.
 
 Two tested shapes handle bounded utterances: 1,024 mel frames (about 10 seconds)
 and 4,096 frames (the 40-second Handy pilot). Padding is masked and decoding stops at the valid acoustic length.
-It does not yet export the encoder's streaming KV/convolution caches. Do not
-split longer recordings into independent chunks and call that cache-aware
-streaming. Feature extraction and tokenization remain on CPU.
+These whole-utterance exports do not preserve state across requests. The separate
+cached export below preserves state between fragments of one dictation, with a
+600-second maximum. Feature extraction and tokenization remain on CPU.
+
+## Cached ten-minute variant
+
+`stream_export.py` exports first/continuation subsamplers and a shared encoder
+body with explicit attention K/V and convolution state. Groups contain 64 acoustic
+frames, but retain the reference's four-frame attention chunks and 56-frame left
+context. The small Boolean attention mask is supplied from the host: computing
+it from a scalar inside the original graph produced incorrect NPU results on
+this pilot, despite matching on CPU. See [ADR-003](../../docs/decisions/ADR-003-cached-npu-dictation.md).
+
+`stream_runtime.py` carries encoder and RNNT state across groups, including the
+last partial native chunk, and resets state between dictations. Audio features
+are calculated in bounded fragments with continuous preemphasis and STFT windows.
+This is internal cache-aware inference; Handy still inserts final text after
+recording stops. It does not provide live typing during capture.
+
+```powershell
+python stream_export.py --model MODEL_DIRECTORY --base-artifact UTTERANCE_IR --audio fr.wav en.wav mixed.wav ten-minute.wav --output STREAM_IR
+python validate_stream.py --artifact STREAM_IR --cache STREAM_CACHE --references STREAM_IR/reference-fr.npz STREAM_IR/reference-en.npz STREAM_IR/reference-mixed.npz STREAM_IR/reference-ten-minute.npz --audio-dir AUDIO_DIRECTORY --model MODEL_DIRECTORY --report stream-parity.json
+python freeze.py --output STREAM_BUILD
+python benchmark.py --executable STREAM_BUILD/dist/nemotron-npu/nemotron-npu.exe --artifact STREAM_IR --cache STREAM_CACHE --model MODEL_DIRECTORY --audio mixed.wav ten-minute.wav silence.wav --report frozen-benchmark.json
+python install_pilot.py --artifact STREAM_IR --worker STREAM_BUILD/dist/nemotron-npu --model MODEL_DIRECTORY --validation stream-parity.json
+```
+
+Add `--check-only` to create additional streaming references without exporting
+weights again. For this variant use `validate_stream.py`, not `runtime.py
+--validate`. Installation requires all-NPU token/tensor and frontend parity,
+including a complete 9,600,000-sample reference, and verifies artifact hashes
+against that validation report. It stages a separate `nemotron-npu-streaming`
+payload and never overwrites the original pilot. Native model identity:
+`nemotron-35-npu-ten-minute`. No shared deployment is implied.
 
 ## Reproduce
 
@@ -88,8 +118,8 @@ payload with a hash inventory and refuses to overwrite an existing pilot.
 
 Compilation may take substantially longer than inference. Run experiments in a
 supervised child process with a time budget; killing that child also cancels
-native compilation. The currently installed Handy GPU configuration remains
-the usable dictation path until the application integration is verified.
+native compilation. Preserve the accepted 40-second NPU pilot and GPU option
+until the ten-minute package passes its own acceptance checks.
 
 ## 2026-10-31 hardware evidence
 

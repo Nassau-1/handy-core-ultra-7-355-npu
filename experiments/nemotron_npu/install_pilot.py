@@ -21,20 +21,40 @@ def main():
             r['tokens_equal'] and r['relative_l2_error'] < 0.02 for r in validation['results']):
         raise ValueError('Reference parity did not pass')
     metadata = json.loads((args.artifact / 'metadata.json').read_text(encoding='utf-8'))
-    if metadata['frames'] != 4096 or metadata['reference_revision'] != 'ea30d66debe3740a08b573244286791d423d6b3e':
-        raise ValueError('The Handy pilot requires the pinned 4,096-frame export')
+    if metadata['reference_revision'] != 'ea30d66debe3740a08b573244286791d423d6b3e':
+        raise ValueError('The Handy pilot requires the pinned reference revision')
+    streaming = metadata.get('mode') == 'cached-streaming'
+    if streaming:
+        if (metadata['encoder_frames'] != 64 or metadata['max_samples'] != 9600000
+                or validation.get('mode') != 'cached-streaming'
+                or not any(r.get('audio_samples') == 9600000 for r in validation['results'])
+                or not all(r.get('frontend_parity') for r in validation['results'])):
+            raise ValueError('The streaming pilot requires validated full ten-minute audio')
+        artifact_files = [f'{name}.{extension}' for name in ['encoder_stream',
+            'subsampler_first', 'subsampler_step', 'predictor', 'joint'] for extension in ['xml', 'bin']]
+        artifact_files += ['frontend.npz', 'metadata.json']
+        for name in artifact_files:
+            with (args.artifact/name).open('rb') as source:
+                digest = hashlib.file_digest(source, 'sha256').hexdigest()
+            if validation.get('artifact_sha256', {}).get(name) != digest:
+                raise ValueError(f'Artifact changed after reference validation: {name}')
+    else:
+        if metadata['frames'] != 4096:
+            raise ValueError('The original pilot requires the 4,096-frame export')
+        artifact_files = ['encoder.xml', 'encoder.bin', 'predictor.xml', 'predictor.bin',
+            'joint.xml', 'joint.bin', 'frontend.npz', 'metadata.json', 'reference.npz']
     if not (args.worker / 'nemotron-npu.exe').is_file():
         raise ValueError('Missing frozen executable')
     app_data = Path(os.environ['LOCALAPPDATA']) / 'com.nassau.handy.ultra355npu'
-    destination = app_data / 'nemotron-npu-pilot'
-    staging = app_data / 'nemotron-npu-pilot.staging'
+    directory = 'nemotron-npu-streaming' if streaming else 'nemotron-npu-pilot'
+    destination = app_data / directory
+    staging = app_data / (directory+'.staging')
     if destination.exists() or staging.exists():
         raise FileExistsError('A pilot or staging directory already exists; preserve it and review before replacing')
     staging.mkdir(parents=True)
     shutil.copytree(args.worker, staging / 'worker')
     (staging / 'artifact').mkdir()
-    for name in ['encoder.xml', 'encoder.bin', 'predictor.xml', 'predictor.bin',
-                 'joint.xml', 'joint.bin', 'frontend.npz', 'metadata.json', 'reference.npz']:
+    for name in artifact_files:
         shutil.copy2(args.artifact / name, staging / 'artifact' / name)
     (staging / 'tokenizer').mkdir()
     for name in ['tokenizer.json', 'processor_config.json']:

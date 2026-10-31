@@ -52,6 +52,22 @@ class DecodeTests(unittest.TestCase):
         self.assertEqual(runtime.decode(np.zeros((1, 5, 2), np.float32), 1), [])
         self.assertEqual(len(runtime.frames), 1)
 
+    def test_fragment_boundary_preserves_predictor_state_and_blank(self):
+        runtime = self.make_runtime([4, 9, 9, 5, 9])
+        encoded = np.arange(3, dtype=np.float32).reshape(1, 3, 1)
+        state = {}
+        first = runtime.decode(encoded[:, :1], 1, state)
+        second = runtime.decode(encoded[:, 1:], 2, state)
+        self.assertEqual(first+second, [4, 5])
+        self.assertEqual(runtime.predictor.tokens, [9, 4, 5])
+
+    def test_independent_dictations_restart_from_blank(self):
+        runtime = self.make_runtime([4, 9, 5, 9])
+        encoded = np.zeros((1, 1, 1), np.float32)
+        self.assertEqual(runtime.decode(encoded, 1), [4])
+        self.assertEqual(runtime.decode(encoded, 1), [5])
+        self.assertEqual(runtime.predictor.tokens, [9, 4, 9, 5])
+
 
 if __name__ == '__main__':
     unittest.main()

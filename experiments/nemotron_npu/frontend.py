@@ -23,19 +23,39 @@ class Processor:
             raise ValueError('Expected mono 16 kHz audio and NumPy output')
         if language not in self.prompts:
             raise ValueError(f'Unsupported language: {language}')
-        signal = np.asarray(audio, dtype=np.float32).copy()
-        signal[1:] = audio[1:] - np.float32(0.97)*audio[:-1]
-        frames = np.lib.stride_tricks.sliding_window_view(np.pad(signal, (256, 256)), 512)[::160]
-        spectrum = np.fft.rfft(frames*self.window, axis=-1)
-        # Match reference sqrt(power)**2 rather than algebraically simplifying it.
-        magnitude = np.sqrt(spectrum.real**2+spectrum.imag**2)**2
-        # No BLAS worker pool: keep preprocessing single-threaded and predictable.
-        features = np.log(np.einsum('tf,mf->tm', magnitude, self.mel, optimize=False)+np.float32(2**-24))
+        frames = self._frames(audio)
+        features = self._features(frames)
         valid = np.arange(len(features)) < len(audio)//160
         features *= valid[:, None]
         return {'input_features': features[None].astype(np.float32),
                 'attention_mask': valid[None],
                 'prompt_ids': np.array([self.prompts[language]], dtype=np.int64)}
+
+    @staticmethod
+    def _frames(audio):
+        signal = np.asarray(audio, dtype=np.float32).copy()
+        signal[1:] = audio[1:] - np.float32(0.97)*audio[:-1]
+        return np.lib.stride_tricks.sliding_window_view(np.pad(signal, (256, 256)), 512)[::160]
+
+    def _features(self, frames):
+        spectrum = np.fft.rfft(frames*self.window, axis=-1)
+        # Match reference sqrt(power)**2 rather than algebraically simplifying it.
+        magnitude = np.sqrt(spectrum.real**2+spectrum.imag**2)**2
+        # No BLAS worker pool: keep preprocessing single-threaded and predictable.
+        features = np.log(np.einsum('tf,mf->tm', magnitude, self.mel, optimize=False)+np.float32(2**-24))
+        return features.astype(np.float32)
+
+    def iter_features(self, audio, first_frames, step_frames):
+        """Bounded FFT/mel work with global preemphasis and STFT boundary continuity."""
+        frames = self._frames(audio)
+        start, count = 0, first_frames
+        while start < len(frames):
+            values = self._features(frames[start:start+count])
+            valid = np.arange(start, start+len(values)) < len(audio)//160
+            values *= valid[:, None]
+            yield np.pad(values, ((0, count-len(values)), (0, 0)))[None]
+            start += count
+            count = step_frames
 
     def batch_decode(self, sequences, skip_special_tokens=True):
         return self.tokenizer.decode_batch(sequences, skip_special_tokens=skip_special_tokens)

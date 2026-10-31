@@ -1,8 +1,9 @@
-"""Explicit NPU acoustic encoder / CPU RNN-T decoder proof of concept.
+"""Explicit NPU speech recognition, fixed-shape or cached streaming artifacts.
 
 stdin: one utterance of signed little-endian PCM16, mono 16 kHz, ended by EOF.
 stdout: UTF-8 transcription followed by newline. Diagnostics use stderr only.
-This first export is bounded, whole-utterance inference, NOT streaming ASR.
+All neural components default to NPU. Cached artifacts retain state internally;
+the framed Handy protocol returns final text after the complete request.
 """
 import argparse
 import json
@@ -20,6 +21,7 @@ def diagnostic(stage, **fields):
 
 
 class Runtime:
+    encoder_filename = 'encoder.xml'
     def __init__(self, artifact, cache, device='NPU', compiler='PLUGIN', joint_device=None, predictor_device=None):
         joint_device = joint_device or device
         predictor_device = predictor_device or device
@@ -36,7 +38,7 @@ class Runtime:
             props.update(INFERENCE_NUM_THREADS=1, NUM_STREAMS=1, INFERENCE_PRECISION_HINT='f32')
         start = time.perf_counter()
         diagnostic('compiling_encoder', device=device, compiler=compiler)
-        self.encoder = core.compile_model(artifact / 'encoder.xml', device, props)
+        self.encoder = core.compile_model(artifact / self.encoder_filename, device, props)
         placement = self.encoder.get_property('EXECUTION_DEVICES')
         if isinstance(placement, str):
             placement = [placement]
@@ -57,12 +59,18 @@ class Runtime:
         self.load_seconds = time.perf_counter()-start
         diagnostic('ready', seconds=self.load_seconds, encoder=device, predictor=predictor_device, joint=joint_device)
 
-    def decode(self, encoded, valid):
-        hidden = np.zeros((self.meta['layers'], 1, self.meta['hidden']), np.float32)
-        cell = np.zeros_like(hidden)
+    @property
+    def max_samples(self):
+        return self.meta.get('max_samples', (self.meta['frames']-1)*160)
+
+    def decode(self, encoded, valid, state=None):
+        state = {} if state is None else state
         blank = self.meta['blank']
-        pred_result = self.predictor([np.array([[blank]], np.int64), hidden, cell])
-        prediction, hidden, cell = [pred_result[o] for o in self.predictor.outputs]
+        if not state:
+            hidden = np.zeros((self.meta['layers'], 1, self.meta['hidden']), np.float32)
+            pred_result = self.predictor([np.array([[blank]], np.int64), hidden, np.zeros_like(hidden)])
+            state['values'] = [pred_result[o].copy() for o in self.predictor.outputs]
+        prediction, hidden, cell = state['values']
         tokens = []
         for index in range(valid):
             for _ in range(self.meta['max_symbols']):
@@ -71,7 +79,8 @@ class Runtime:
                     break
                 tokens.append(token)
                 result = self.predictor([np.array([[token]], np.int64), hidden, cell])
-                prediction, hidden, cell = [result[o] for o in self.predictor.outputs]
+                prediction, hidden, cell = [result[o].copy() for o in self.predictor.outputs]
+        state['values'] = [prediction, hidden, cell]
         return tokens
 
     def infer(self, features, mask, prompt, valid):
@@ -110,7 +119,7 @@ def serve(runtime, processor, writer):
         writer.write((json.dumps(payload, ensure_ascii=False)+'\n').encode('utf-8'))
         writer.flush()
 
-    limit = (runtime.meta['frames']-1)*160
+    limit = getattr(runtime, 'max_samples', (runtime.meta['frames']-1)*160)
     send({'ready': True, 'encoder_device': runtime.device, 'predictor_device': runtime.predictor_device,
           'joint_device': runtime.joint_device, 'max_samples': limit,
           'device': 'NPU' if runtime.device == runtime.predictor_device == runtime.joint_device == 'NPU' else 'hybrid'})
@@ -166,7 +175,14 @@ def main():
     if args.worker:
         writer.write(b'{"stage":"compiling"}\n')
         writer.flush()
-    runtime = Runtime(args.artifact, args.cache, args.device, args.compiler, args.joint_device, args.predictor_device)
+    metadata = json.loads((args.artifact/'metadata.json').read_text(encoding='utf-8'))
+    runtime_type = Runtime
+    if metadata.get('mode') == 'cached-streaming':
+        if args.validate:
+            p.error('Use validate_stream.py for cached-streaming reference validation')
+        from stream_runtime import StreamingRuntime
+        runtime_type = StreamingRuntime
+    runtime = runtime_type(args.artifact, args.cache, args.device, args.compiler, args.joint_device, args.predictor_device)
     if args.validate:
         data = np.load(args.reference or args.artifact / 'reference.npz')
         expected = [int(t) for t in data['tokens'] if t != runtime.meta['blank']]
@@ -197,10 +213,10 @@ def main():
     if args.worker:
         serve(runtime, processor, writer)
         return
-    limit = (runtime.meta['frames']-1)*160
+    limit = runtime.max_samples
     raw = sys.stdin.buffer.read(limit*2+2)
     if len(raw) > limit*2 or len(raw) % 2:
-        raise ValueError('PCM exceeds fixed-shape limit or has an incomplete sample')
+        raise ValueError('PCM exceeds the duration limit or has an incomplete sample')
     if not raw:
         raise ValueError('Empty PCM input')
     audio = np.frombuffer(raw, dtype='<i2').astype(np.float32)/32768

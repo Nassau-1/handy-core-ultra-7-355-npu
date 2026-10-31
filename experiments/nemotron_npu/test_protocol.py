@@ -43,6 +43,12 @@ class ProtocolTests(unittest.TestCase):
         self.assertFalse(result[-1]['ok'])
         self.assertEqual(self.calls, [])
 
+    def test_streaming_limit_is_advertised_and_enforced(self):
+        self.runtime.max_samples = 600*16000
+        result = self.run_worker(b'{"samples":9600001}\n', ValueError)
+        self.assertEqual(result[0]['max_samples'], 9600000)
+        self.assertEqual(self.calls, [])
+
     def test_truncated_frame_does_not_reach_inference(self):
         result = self.run_worker(b'{"samples":2}\n'+b'\0'*4, EOFError)
         self.assertIn('Truncated', result[-1]['error'])
