@@ -31,3 +31,22 @@ Build uses a pinned model revision and content digest manifest, fixed OpenVINO
 2026.2.1 packages and a frozen private Python distribution. Runtime imports are
 smoke-tested before installer creation. MSI/EXE and `.intunewin` are build artifacts,
 not Git source. App-local native dependencies follow upstream's build procedure.
+
+## Optional Nemotron NPU pilot
+
+The optional `nemotron-35-npu-pilot` model is registered only when its complete
+payload exists in LocalAppData under `nemotron-npu-pilot`. It shares Handy's
+capture, cancellation, worker protocol and output handling, with a separate
+worker, model artifact and compilation cache. The default Whisper payload and
+GPU model remain available. See [ADR-002](decisions/ADR-002-nemotron-npu-pilot.md).
+
+The pinned 0.6B reference is exported as three static OpenVINO graphs: encoder,
+recurrent predictor and joint classifier. All three explicitly target NPU;
+NumPy audio features, token selection and text decoding run on CPU. Runtime
+does not import PyTorch or Transformers. The persistent worker reports actual
+execution devices and its maximum sample count during initialization. Rust
+rejects oversized requests before sending audio, and the worker validates the
+protocol independently. The current 4,096-frame artifact supports approximately
+40 seconds per utterance; stateful streaming is not implemented. Installation
+and numerical validation are documented in the
+[experiment README](../experiments/nemotron_npu/README.md).

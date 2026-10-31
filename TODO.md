@@ -4,11 +4,12 @@
 - [x] Validate loading changes with 14 Python tests, frontend lint and TypeScript/Vite build.
 - [x] Validate Rust cancellation tests/clippy and package smoke checks in Windows CI; extract and run the test build locally.
 - [x] Verify progress, elapsed time, actual cancellation and previous-model restoration in the packaged UI.
-- [ ] Verify unexpected-error retention in the packaged UI and install the final pilot build.
+- [x] Verify unexpected-error retention in the packaged UI.
+- [ ] Install the final pilot build and validate the Nemotron microphone/paste flow with the user.
 - [x] Validate Turbo Q8 CPU/GPU transcription; user confirms microphone, Ctrl+Space and Notepad insertion (2026-10-31).
-- [ ] Investigate slow Whisper compilation with the driver compiler versus bundled compiler, with bounded CPU use; pilot test stopped after 1083 s due to fan noise, not a successful NPU load.
+- [x] Compare bounded Whisper compilation attempts: plugin trial interrupted after 1083 s; single-thread driver compiler trial stopped at 180 s; neither reached readiness. Root cause remains unresolved.
 - [x] Implement pinned Nemotron reference export and PCM runtime; all three neural graphs execute on NPU with exact tokens on four synthetic fixtures.
-- [ ] Build and verify the separate Nemotron NPU model in Handy, including its 40-second request limit and microphone/paste flow.
+- [x] Build and verify the separate Nemotron NPU model in Handy on FR/EN/mixed/24-second fixtures; verify oversized requests fail without truncation.
 
 - [x] Complete and record CI compilation/installation verification and publish Preview 1.
 - [ ] Validate real Core Ultra 7 355: cold and warm load, repeated FR/EN, >30s audio.

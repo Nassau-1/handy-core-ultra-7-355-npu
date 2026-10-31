@@ -30,8 +30,10 @@ Intel documents two relevant, distinct issues:
 The [2026.2 NPU plugin documentation](https://github.com/openvinotoolkit/openvino/blob/releases/2026/2/src/plugins/intel_npu/README.md)
 explains that `PREFER_PLUGIN` selects the compiler bundled with OpenVINO by
 default. Updating the driver therefore does not necessarily replace the compiler
-used by Whisper. Testing `NPU_COMPILER_TYPE=DRIVER` with bounded CPU use is the
-next isolated experiment; no such change is enabled in the shipped application.
+used by Whisper. A separate `NPU_COMPILER_TYPE=DRIVER` trial, limited to one
+compiler thread and 180 seconds, did not reach readiness or create a cache.
+That bounded observation does not establish an infinite hang. No such change
+is enabled in the shipped application.
 
 ## Independent CPU/GPU checks
 
@@ -71,8 +73,9 @@ flow. It does not establish a corpus-level word error rate or a best model.
 - The hash-verified MSI was administratively extracted and its application run
   locally. The French panel showed driver checking, compilation and elapsed
   seconds. Clicking Cancel removed the actual worker process and displayed the
-  cancelled state; the previous GPU selection returned. Unexpected-error UI is
-  still a separate check.
+  cancelled state; the previous GPU selection returned. Temporarily hiding the
+  extracted test copy's encoder XML produced a persistent, visible missing-model
+  error. The file was restored after this check.
 - GPU smoke tests of the extracted build timed out while the larger NPU compile
   was running. A sequential comparison after compilation completed succeeded:
   installed build 2.145 s, corrected build 2.295 s for the same 9.895 s fixture,
@@ -91,10 +94,10 @@ The initial eager-reference attempt produced an empty transcript and was rejecte
 the original HF mask factory also failed TorchScript tracing. The accepted path
 uses SDPA and verifies the replacement mask numerically before export. NumPy
 feature extraction is compared to the reference and keeps daily runtime free of
-PyTorch. Three decoder control-flow tests pass.
+PyTorch. Eight decoder control-flow and protocol validation tests pass.
 
-NPU tokens match reference tokens on the three synthetic short fixtures and a
-24.37-second concatenated fixture. Valid-frame encoder relative L2 differences
+NPU tokens match reference tokens on the three synthetic short fixtures and
+24.37- and 39.845-second concatenated fixtures. Valid-frame encoder relative L2 differences
 are below 0.7%; padded frames are excluded because they are not decoded. This
 proves these numerical cases, not superior speech accuracy. The concatenated
 reference itself omits some greeting words between language changes.
@@ -108,9 +111,26 @@ per short phrase across runs; process CPU time was about 0.02–0.09 s. The froz
 of 0.66 s, excluding preprocessing. First inference is slower. Machine load
 varied and no energy/acoustic measurement was taken.
 
-The optional Handy model integration is being built separately and is not yet
-installed. Its 40-second dictation limit is explicit; cache-aware streaming is
-not implemented. The existing GPU configuration remains available.
+The optional Handy integration passed [Windows CI run 41217260926](https://github.com/Nassau-1/handy-core-ultra-7-355-npu/actions/runs/41217260926):
+native build, package audits, Rust tests/clippy, silent MSI installation/removal.
+The artifact for commit `f9524bc` has SHA-256
+`2ced8aed41bb3af6342648681474ce06fe0f8788de2db9ac367e4d34434c07ce`.
+After administrative extraction, Handy's headless transcription path reported
+`OpenVINO NPU` and passed all four cases:
 
-No Intune catalog change or shared rollout was performed. GPU remains the usable
-pilot model while NPU Whisper loading is unresolved.
+| Fixture      | Audio (s) | Cached engine load (s) | First inference (s) | Second inference (s) |
+| ------------ | --------: | ---------------------: | ------------------: | -------------------: |
+| French       |     7.160 |                  0.715 |               0.767 |                0.333 |
+| English      |     6.315 |                  0.636 |               0.764 |                0.322 |
+| Mixed FR/EN  |     9.895 |                  0.618 |               0.789 |                0.352 |
+| Concatenated |    24.370 |                  0.627 |               0.942 |                0.513 |
+
+Inference includes preprocessing and text decoding. Engine load excludes Handy
+startup. A 42-second input failed with exit code 1 and an explicit duration-limit
+error, without truncation. The advertised limit is 40 seconds (655,200 samples,
+40.95 seconds internally). Cache-aware streaming is not implemented. Final
+Program Files installation and real microphone/paste validation remain pending.
+The existing GPU configuration remains available.
+
+No Intune catalog change or shared rollout was performed. NPU Whisper loading
+remains unresolved; Nemotron is a separate, explicitly identified pilot model.
