@@ -8,6 +8,14 @@ from pathlib import Path
 import psutil
 
 
+def process_tree(process):
+    try:
+        return [process, *process.children(recursive=True)]
+    except psutil.NoSuchProcess:
+        # The subprocess can finish between poll() and the sampling call.
+        return [process]
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--seconds', type=float, default=300)
@@ -28,7 +36,7 @@ def main():
             if hasattr(psutil, 'BELOW_NORMAL_PRIORITY_CLASS'):
                 process.nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
             while child.poll() is None:
-                tree = [process, *process.children(recursive=True)]
+                tree = process_tree(process)
                 memory = cpu = 0
                 for member in tree:
                     try:
@@ -43,12 +51,14 @@ def main():
                     reason = 'timeout'
                     break
                 time.sleep(0.5)
+        except psutil.NoSuchProcess:
+            pass
         except KeyboardInterrupt:
             reason = 'cancelled'
         finally:
             if child.poll() is None:
                 # Kill this experiment's descendants only, including venv launchers.
-                for member in reversed([process, *process.children(recursive=True)]):
+                for member in reversed(process_tree(process)):
                     try:
                         member.kill()
                     except psutil.NoSuchProcess:

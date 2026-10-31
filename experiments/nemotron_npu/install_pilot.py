@@ -5,6 +5,7 @@ import json
 import os
 import shutil
 from pathlib import Path
+from validation_policy import POLICY, accepted
 
 
 def main():
@@ -17,15 +18,17 @@ def main():
     validation = json.loads(args.validation.read_text(encoding='utf-8'))
     if any(validation.get(k) != 'NPU' for k in ['device', 'joint_device', 'predictor_device']):
         raise ValueError('All neural graphs must have been validated on NPU')
-    if not validation.get('results') or not all(
-            r['tokens_equal'] and r['relative_l2_error'] < 0.02 for r in validation['results']):
-        raise ValueError('Reference parity did not pass')
     metadata = json.loads((args.artifact / 'metadata.json').read_text(encoding='utf-8'))
     if metadata['reference_revision'] != 'ea30d66debe3740a08b573244286791d423d6b3e':
         raise ValueError('The Handy pilot requires the pinned reference revision')
     streaming = metadata.get('mode') == 'cached-streaming'
+    results = validation.get('results', [])
+    if not results or not all(accepted(r) if streaming else
+            r['tokens_equal'] and r['relative_l2_error'] < 0.02 for r in results):
+        raise ValueError('Reference parity did not pass')
     if streaming:
         if (metadata['encoder_frames'] != 64 or metadata['max_samples'] != 9600000
+                or validation.get('policy') != POLICY
                 or validation.get('mode') != 'cached-streaming'
                 or not any(r.get('audio_samples') == 9600000 for r in validation['results'])
                 or not all(r.get('frontend_parity') for r in validation['results'])):

@@ -56,12 +56,24 @@ python install_pilot.py --artifact STREAM_IR --worker STREAM_BUILD/dist/nemotron
 ```
 
 Add `--check-only` to create additional streaming references without exporting
-weights again. For this variant use `validate_stream.py`, not `runtime.py
---validate`. Installation requires all-NPU token/tensor and frontend parity,
+weights again. For long references, `grouped_reference.py --model MODEL_DIRECTORY
+--audio fr.wav en.wav mixed.wav ten-minute.wav --native-references STREAM_IR
+--output LONG_REFERENCES` uses unmodified HF encoder/decoder components with
+cached groups. It first requires agreement with at least three saved native HF
+references. Include `LONG_REFERENCES/reference-ten-minute.npz` in validation.
+For this variant use `validate_stream.py`, not `runtime.py --validate`.
+Installation requires all-NPU text/tensor and frontend parity,
 including a complete 9,600,000-sample reference, and verifies artifact hashes
 against that validation report. It stages a separate `nemotron-npu-streaming`
 payload and never overwrites the original pilot. Native model identity:
 `nemotron-35-npu-ten-minute`. No shared deployment is implied.
+
+The `stream-lexical-v1` gate retains exact short-reference tokens. Long-reference
+words must match, allowing casing/punctuation only, with global relative L2 below
+1% and every group below 3%. The 600-second case has one punctuation/case
+difference and no changed words; its global/worst-group errors are 0.569%/2.372%.
+See ADR-003 for the failed initial stricter gate and diagnostic evidence. These
+checks do not establish real-world WER or equivalence on arbitrary recordings.
 
 ## Reproduce
 

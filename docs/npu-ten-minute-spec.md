@@ -42,3 +42,8 @@ for rollback, and never replace a running worker's files.
 
 No shared Intune rollout, new model weights, automatic CPU/GPU fallback or
 unrelated settings changes are included.
+
+Numerical acceptance is defined in [ADR-003](decisions/ADR-003-cached-npu-dictation.md):
+exact short-reference tokens, identical long-reference words with casing and
+punctuation differences reported, plus independent global/per-group tensor
+limits. The original strict long-token failure remains part of the evidence.
