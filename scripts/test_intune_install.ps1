@@ -6,10 +6,12 @@ $meta = Get-Content (Join-Path $repo 'build/intune/output/intune-metadata.json')
 $key = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\$($meta.productCode)"
 if (Test-Path -LiteralPath $key) { throw 'Test product already installed; refusing to alter an existing install' }
 try {
-    $script = Join-Path $repo 'build/intune/source/Install.ps1'
+    # Hosted CI has no Intel NPU: install the MSI directly. The real wrapper's
+    # driver branch is tested separately, then exercised on eligible pilot PCs.
+    $msi = Join-Path $repo 'build/intune/source/HandyNpu.msi'
     $stdout = Join-Path $repo 'build/install-stdout.log'
     $stderr = Join-Path $repo 'build/install-stderr.log'
-    $proc = Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$script`"" -WindowStyle Hidden -Wait -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+    $proc = Start-Process msiexec.exe -ArgumentList "/i `"$msi`" /qn /norestart ALLUSERS=1" -WindowStyle Hidden -Wait -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
     if ($proc.ExitCode -notin @(0,3010)) {
         Get-Content -LiteralPath $stdout,$stderr -ErrorAction SilentlyContinue | Write-Host
         $msiLog = Join-Path $env:TEMP 'Handy-CoreUltra355-NPU-install.log'
@@ -31,14 +33,16 @@ try {
         Get-Content -LiteralPath $modelErr | Write-Host
         throw 'Installed app cannot enumerate models'
     }
-    $model = @(Get-Content -LiteralPath $modelOut -Raw | ConvertFrom-Json) | Where-Object { $_.id -eq 'openvino-turbo-int8-npu' }
+    $models = @(Get-Content -LiteralPath $modelOut -Raw | ConvertFrom-Json)
+    if ($models.Count -ne 1) { throw 'Managed edition exposed unapproved models' }
+    $model = $models | Where-Object { $_.id -eq 'nemotron-35-npu-ten-minute' }
     if (@($model).Count -ne 1 -or -not $model.is_downloaded -or -not $model.is_recommended) { throw 'Installed app cannot resolve the bundled NPU model' }
     $npu = Join-Path $install 'resources/npu'
-    $probe = & (Join-Path $npu 'worker/handy-npu-worker.exe') --probe
+    $probe = & (Join-Path $npu 'worker/nemotron-npu.exe') --probe
     if ($LASTEXITCODE -ne 0) { throw 'Installed NPU runtime cannot load' }
     $devices = ($probe | ConvertFrom-Json).devices
     if ('NPU' -notin $devices) {
-        $output = & (Join-Path $npu 'worker/handy-npu-worker.exe') (Join-Path $npu 'model') (Join-Path $env:TEMP 'handy-npu-smoke-cache')
+        $output = & (Join-Path $npu 'worker/nemotron-npu.exe') --artifact (Join-Path $npu 'artifact') --model (Join-Path $npu 'tokenizer') --cache (Join-Path $env:TEMP 'handy-npu-smoke-cache') --worker
         $workerExitCode = $LASTEXITCODE
         $messages = @($output | ForEach-Object { $_ | ConvertFrom-Json })
         $failures = @($messages | Where-Object { $_.PSObject.Properties.Name -contains 'ready' })

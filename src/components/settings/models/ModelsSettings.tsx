@@ -18,6 +18,47 @@ import {
   supportsLanguageCode,
 } from "@/lib/constants/languages.ts";
 import type { ModelInfo } from "@/bindings";
+import managedPolicy from "../../../../packaging/managed-policy.json";
+import { Button } from "../../ui/Button";
+
+const ManagedModelsSettings: React.FC = () => {
+  const { t } = useTranslation();
+  const { models, currentModel, selectModel } = useModelStore();
+  const [switching, setSwitching] = useState(false);
+  const model = models.find((item) => item.id === managedPolicy.default_model);
+  return (
+    <div className="max-w-3xl w-full mx-auto space-y-4">
+      <h1 className="text-xl font-semibold">{t("managed.modelsTitle")}</h1>
+      <p className="text-sm text-text/70">{t("managed.modelsDescription")}</p>
+      <div className="rounded-lg border border-mid-gray/30 p-4 space-y-3">
+        <h2 className="font-medium">{t("managed.modelName")}</h2>
+        <p className="text-sm text-text/70">{t("managed.modelDescription")}</p>
+        {model?.is_downloaded ? (
+          <Button
+            disabled={switching || currentModel === model.id}
+            onClick={async () => {
+              setSwitching(true);
+              try {
+                await selectModel(model.id);
+              } finally {
+                setSwitching(false);
+              }
+            }}
+          >
+            {t(
+              currentModel === model.id ? "managed.active" : "managed.activate",
+            )}
+          </Button>
+        ) : (
+          <p role="alert">{t("managed.repair")}</p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export const ModelsSettings: React.FC = () =>
+  managedPolicy.managed ? <ManagedModelsSettings /> : <CatalogModelsSettings />;
 
 // check if model supports a language based on its supported_languages list
 const modelSupportsLanguage = (model: ModelInfo, langCode: string): boolean => {
@@ -30,7 +71,7 @@ const modelSupportsLanguage = (model: ModelInfo, langCode: string): boolean => {
 const isLegacyModel = (model: ModelInfo): boolean =>
   typeof model.source === "object" && "Url" in model.source;
 
-export const ModelsSettings: React.FC = () => {
+const CatalogModelsSettings: React.FC = () => {
   const { t } = useTranslation();
   const [switchingModelId, setSwitchingModelId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");

@@ -1171,7 +1171,8 @@ impl ModelManager {
                  "Nemotron 3.5 · Intel NPU · 10 min",
                  "Local NPU dictation in French, English and mixed speech, up to 10 minutes. Text is inserted after recording stops. Context is preserved between audio fragments. Longer recordings are rejected without truncation."),
             ] {
-                if !crate::windows_npu::nemotron_available_for(app_handle, id) {
+                if !crate::windows_npu::nemotron_available_for(app_handle, id)
+                    && !(crate::managed::enabled() && crate::managed::allows(id)) {
                     continue;
                 }
                 let mut pilot = available_models[crate::windows_npu::MODEL_ID].clone();
@@ -1180,7 +1181,7 @@ impl ModelManager {
                 pilot.description = description.into();
                 pilot.filename = id.into();
                 pilot.size_mb = 2435;
-                pilot.is_downloaded = true;
+                pilot.is_downloaded = crate::windows_npu::nemotron_available_for(app_handle, id);
                 pilot.is_recommended = false;
                 pilot.supported_languages = vec!["fr".into(), "en".into()];
                 available_models.insert(pilot.id.clone(), pilot);
@@ -1191,20 +1192,29 @@ impl ModelManager {
         // already in the HF cache dedups onto its richer catalog entry (the scans
         // only insert ids not already present) instead of showing as a bare cache
         // find. Additive — see `seed_catalog_models`.
-        Self::seed_catalog_models(&mut available_models);
-        #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
-        for model in available_models.values_mut() {
-            model.is_recommended = model.id == crate::windows_npu::MODEL_ID;
-        }
+        if !crate::managed::enabled() {
+            Self::seed_catalog_models(&mut available_models);
+            #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
+            for model in available_models.values_mut() {
+                model.is_recommended = model.id == crate::windows_npu::MODEL_ID;
+            }
 
-        // Auto-discover custom transcribe-cpp models (.bin / .gguf) in the models directory
-        if let Err(e) = Self::discover_custom_transcribe_models(&models_dir, &mut available_models)
-        {
-            warn!("Failed to discover custom models: {}", e);
-        }
+            // Auto-discover custom transcribe-cpp models (.bin / .gguf) in the models directory
+            if let Err(e) =
+                Self::discover_custom_transcribe_models(&models_dir, &mut available_models)
+            {
+                warn!("Failed to discover custom models: {}", e);
+            }
 
-        // Auto-discover transcribe-cpp GGUF models already in the shared HF cache.
-        Self::discover_hf_cache_models(&mut available_models);
+            // Auto-discover transcribe-cpp GGUF models already in the shared HF cache.
+            Self::discover_hf_cache_models(&mut available_models);
+        }
+        available_models.retain(|id, _| crate::managed::allows(id));
+        if crate::managed::enabled() {
+            for model in available_models.values_mut() {
+                model.is_recommended = model.id == crate::managed::default_model();
+            }
+        }
 
         let manager = Self {
             app_handle: app_handle.clone(),
@@ -1216,10 +1226,12 @@ impl ModelManager {
         };
 
         // Migrate any bundled models to user directory
-        manager.migrate_bundled_models()?;
+        if !crate::managed::enabled() {
+            manager.migrate_bundled_models()?;
 
-        // Migrate GigaAM from single-file to directory format
-        manager.migrate_gigaam_to_directory()?;
+            // Migrate GigaAM from single-file to directory format
+            manager.migrate_gigaam_to_directory()?;
+        }
 
         // Check which models are already downloaded
         manager.update_download_status()?;
@@ -1233,7 +1245,11 @@ impl ModelManager {
     pub fn get_available_models(&self) -> Vec<ModelInfo> {
         let mut list: Vec<ModelInfo> = {
             let models = self.available_models.lock().unwrap();
-            models.values().cloned().collect()
+            models
+                .values()
+                .filter(|model| crate::managed::allows(&model.id))
+                .cloned()
+                .collect()
         };
         // Stable, reasonable order: catalog editorial rank first (lower = higher
         // priority), then any other recommended model, then by accuracy, speed,
@@ -1303,6 +1319,11 @@ impl ModelManager {
     /// *off-lock* so readers never block on I/O; only the brief merge takes the
     /// registry lock. Concurrent calls coalesce via [`Self::try_start_rescan`].
     pub fn rescan_local_models(&self) -> Result<()> {
+        if crate::managed::enabled() {
+            return Err(anyhow::anyhow!(
+                "Model discovery is managed by your organization."
+            ));
+        }
         let _guard = match self.try_start_rescan() {
             Some(g) => g,
             None => {
@@ -1343,6 +1364,9 @@ impl ModelManager {
     }
 
     pub fn get_model_info(&self, model_id: &str) -> Option<ModelInfo> {
+        if !crate::managed::allows(model_id) {
+            return None;
+        }
         let models = self.available_models.lock().unwrap();
         models.get(model_id).cloned()
     }
@@ -2288,6 +2312,11 @@ impl ModelManager {
     }
 
     pub async fn download_model(&self, model_id: &str) -> Result<()> {
+        if crate::managed::enabled() {
+            return Err(anyhow::anyhow!(
+                "Models are supplied by your organization's installer."
+            ));
+        }
         let model_info = {
             let models = self.available_models.lock().unwrap();
             models.get(model_id).cloned()
@@ -2660,6 +2689,7 @@ impl ModelManager {
     }
 
     pub fn get_model_path(&self, model_id: &str) -> Result<PathBuf> {
+        crate::managed::require_allowed(model_id).map_err(anyhow::Error::msg)?;
         #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
         if crate::windows_npu::is_nemotron_model(model_id) {
             return crate::windows_npu::nemotron_dir_for(&self.app_handle, model_id)

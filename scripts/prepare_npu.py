@@ -1,79 +1,60 @@
-"""Build-only: download the immutable model and freeze the private Python runtime."""
+"""Build the managed Nemotron payload; never ship pilot recordings or compiled caches."""
+import argparse
 import hashlib
 import json
 from pathlib import Path
 import shutil
 import subprocess
 import sys
-import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
+EXPERIMENT = ROOT / 'experiments/nemotron_npu'
 
 
-def digest_file(path, entry):
-    algorithm = "sha256" if "sha256" in entry else "sha1"
-    digest = hashlib.new(algorithm)
-    if algorithm == "sha1":
-        digest.update(f"blob {entry['size']}\0".encode())
-    with path.open("rb") as stream:
-        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
-def prepare_model(destination):
-    manifest = json.loads((ROOT / "packaging/model-lock.json").read_text())
-    destination.mkdir(parents=True, exist_ok=True)
-    for entry in manifest["files"]:
-        path = destination / entry["name"]
-        expected = entry.get("sha256", entry.get("git_blob_sha1"))
-        if path.exists() and path.stat().st_size == entry["size"] and digest_file(path, entry) == expected:
-            continue
-        url = f"https://huggingface.co/{manifest['repo']}/resolve/{manifest['revision']}/{entry['name']}"
-        partial = path.with_suffix(path.suffix + ".partial")
-        print(f"Fetching {entry['name']}", flush=True)
-        with urllib.request.urlopen(url, timeout=180) as response, partial.open("wb") as output:
-            shutil.copyfileobj(response, output)
-        if partial.stat().st_size != entry["size"] or digest_file(partial, entry) != expected:
-            raise RuntimeError(f"Model integrity failure: {entry['name']}")
-        partial.replace(path)
-    shutil.copy2(ROOT / "packaging/model-lock.json", destination / "model-lock.json")
-    shutil.copy2(ROOT / "packaging/WHISPER-LICENSE.txt", destination / "LICENSE.txt")
+def run(script, *args):
+    subprocess.run([sys.executable, str(EXPERIMENT / script), *map(str, args)], check=True)
 
 
 def main():
-    resources = ROOT / "src-tauri/resources/npu"
-    prepare_model(resources / "model")
-    subprocess.run([
-        sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean", "--onedir",
-        "--name", "handy-npu-worker", "--console",
-        "--collect-all", "openvino", "--collect-all", "openvino_genai",
-        "--collect-all", "openvino_tokenizers",
-        "--copy-metadata", "openvino", "--copy-metadata", "openvino-genai",
-        "--copy-metadata", "openvino-tokenizers", "--copy-metadata", "numpy",
-        "--distpath", str(ROOT / "build/npu/dist"),
-        "--workpath", str(ROOT / "build/npu/work"),
-        "--specpath", str(ROOT / "build/npu"),
-        str(ROOT / "src-tauri/src/windows_npu_worker.py"),
-    ], check=True)
-    shutil.copytree(ROOT / "build/npu/dist/handy-npu-worker", resources / "worker", dirs_exist_ok=True)
-    shutil.copy2(Path(sys.base_prefix) / "LICENSE.txt", resources / "worker/PYTHON-LICENSE.txt")
-    shutil.copy2(ROOT / "THIRD-PARTY-NPU.md", resources / "THIRD-PARTY-NPU.md")
-    probe = subprocess.run([str(resources / "worker/handy-npu-worker.exe"), "--probe"],
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--source-model', type=Path, default=ROOT / 'build/npu/source')
+    parser.add_argument('--output', type=Path, default=ROOT / 'src-tauri/resources/npu')
+    args = parser.parse_args()
+    resources = args.output
+    if resources.exists():
+        raise RuntimeError(f'Output must be absent to avoid mixing model payloads: {resources}')
+    run('download.py', '--output', args.source_model)
+    resources.mkdir(parents=True)
+    run('production_export.py', '--model', args.source_model, '--output', resources / 'artifact')
+    run('freeze.py', '--output', ROOT / 'build/npu/frozen')
+    shutil.copytree(ROOT / 'build/npu/frozen/dist/nemotron-npu', resources / 'worker')
+    tokenizer = resources / 'tokenizer'
+    tokenizer.mkdir()
+    for filename in ['tokenizer.json', 'tokenizer_config.json', 'processor_config.json']:
+        shutil.copy2(args.source_model / filename, tokenizer / filename)
+    shutil.copy2(args.source_model / 'README.md', resources / 'NVIDIA-MODEL-CARD.md')
+    shutil.copy2(args.source_model / 'source-manifest.json', resources / 'source-manifest.json')
+    shutil.copy2(ROOT / 'packaging/OPENMDW-1.1.txt', resources / 'MODEL-LICENSE.txt')
+    shutil.copy2(EXPERIMENT / 'TRANSFORMERS-LICENSE.txt', resources / 'TRANSFORMERS-LICENSE.txt')
+    shutil.copy2(Path(sys.base_prefix) / 'LICENSE.txt', resources / 'worker/PYTHON-LICENSE.txt')
+    shutil.copy2(ROOT / 'THIRD-PARTY-NPU.md', resources / 'THIRD-PARTY-NPU.md')
+    for name in ['managed-policy.json', 'finance-glossary.json']:
+        shutil.copy2(ROOT / 'packaging' / name, resources / name)
+    probe = subprocess.run([str(resources / 'worker/nemotron-npu.exe'), '--probe'],
                            check=True, capture_output=True, text=True, timeout=60)
     result = json.loads(probe.stdout)
-    if not result["openvino"].startswith("2026.2.1"):
-        raise RuntimeError(f"Unexpected runtime version: {result}")
+    if not result['openvino'].startswith('2026.2.1'):
+        raise RuntimeError(f'Unexpected runtime version: {result}')
     print(json.dumps(result))
     inventory = []
-    for path in sorted(resources.rglob("*")):
-        if path.is_file() and path != resources / "inventory.json":
-            with path.open("rb") as stream:
-                digest = hashlib.file_digest(stream, "sha256").hexdigest()
-            inventory.append({"path": path.relative_to(resources).as_posix(),
-                              "size": path.stat().st_size, "sha256": digest})
-    (resources / "inventory.json").write_text(json.dumps(inventory, indent=2))
+    for path in sorted(resources.rglob('*')):
+        if path.is_file():
+            with path.open('rb') as stream:
+                digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+            inventory.append(dict(path=path.relative_to(resources).as_posix(),
+                                  size=path.stat().st_size, sha256=digest))
+    (resources / 'inventory.json').write_text(json.dumps(inventory, indent=2), encoding='utf-8')
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

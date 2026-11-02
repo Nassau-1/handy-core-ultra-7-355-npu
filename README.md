@@ -1,10 +1,17 @@
 # Handy for Core Ultra 7 355's NPU
 
 A Windows x64 fork of [Handy](https://github.com/cjpais/Handy) with an explicit
-**Whisper Turbo INT8 · Intel NPU** model, a bundled OpenVINO runtime, and an
+**Nemotron 3.5 · Intel NPU · 10 min** model, a bundled OpenVINO runtime, and an
 Intune Company Portal package. Based on [Bbrizly's Windows NPU prototype](https://github.com/Bbrizly/Handy-NPU-support/tree/feature/windows-intel-npu-openvino).
 
-## Status — 2026-10-31
+## Status — 2026-11-02
+
+Managed 0.11.0 is being validated: complete Nemotron payload, embedded owner
+model policy, shared FR/EN financial glossary and signed Intel driver prerequisite
+in the Intune wrapper. Personal vocabulary and history are preserved. See the
+[distribution specification](docs/managed-npu-distribution-spec.md) and
+[operations guide](docs/operations.md). The portal remains on Preview 1 until the
+new package has been verified and uploaded; a GitHub build does not deploy it.
 
 Experimental [Preview 1 release](https://github.com/Nassau-1/handy-core-ultra-7-355-npu/releases/tag/v0.10.0-npu-preview.1).
 Windows build, silent installation, model discovery and uninstall checks passed.

@@ -13,6 +13,7 @@ pub mod engine_supervisor;
 mod helpers;
 mod input;
 mod llm_client;
+mod managed;
 mod managers;
 mod memory;
 mod overlay;

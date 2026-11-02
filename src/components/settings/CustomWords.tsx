@@ -5,6 +5,8 @@ import { useSettings } from "../../hooks/useSettings";
 import { Input } from "../ui/Input";
 import { Button } from "../ui/Button";
 import { SettingContainer } from "../ui/SettingContainer";
+import managedPolicy from "../../../packaging/managed-policy.json";
+import financeGlossary from "../../../packaging/finance-glossary.json";
 
 interface CustomWordsProps {
   descriptionMode?: "inline" | "tooltip";
@@ -56,6 +58,21 @@ export const CustomWords: React.FC<CustomWordsProps> = React.memo(
 
     return (
       <>
+        {managedPolicy.managed && (
+          <details className="px-4 py-3 text-sm">
+            <summary className="cursor-pointer font-medium">
+              {t("managed.glossaryTitle", {
+                count: financeGlossary.terms.length,
+              })}
+            </summary>
+            <p className="my-2 text-text/70">
+              {t("managed.glossaryDescription")}
+            </p>
+            <p className="max-h-48 overflow-y-auto text-text/70">
+              {financeGlossary.terms.map((term) => term.canonical).join(" · ")}
+            </p>
+          </details>
+        )}
         <SettingContainer
           title={t("settings.advanced.customWords.title")}
           description={t("settings.advanced.customWords.description")}

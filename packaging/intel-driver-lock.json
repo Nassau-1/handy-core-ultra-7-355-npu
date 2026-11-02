@@ -1,0 +1,9 @@
+{
+  "version": "32.0.100.5540",
+  "url": "https://downloadmirror.intel.com/927127/npu_win_32.0.100.5540.exe",
+  "filename": "npu_win_32.0.100.5540.exe",
+  "sha256": "FBA32699B699918A793FCA05CFC6C607C8745772057347476ECD8C4CF7746048",
+  "arguments": ["--silent"],
+  "success_codes": [0, 14, 3010],
+  "notes": "--silent without --reboot: installation_readme.txt, section VI, inside this signed Intel package. Exit 14 is success/reboot required, also verified in pilot installation log. Never pass --overwrite, --fresh, --unsigned or --terminateProcesses."
+}

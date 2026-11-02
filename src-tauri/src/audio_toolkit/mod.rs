@@ -1,5 +1,6 @@
 pub mod audio;
 pub mod constants;
+pub mod finance;
 pub mod lang_id;
 pub mod text;
 pub mod utils;

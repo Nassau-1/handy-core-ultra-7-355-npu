@@ -751,5 +751,16 @@
     "dismiss": "Dismiss",
     "unmeasured": "Speed and accuracy have not been measured on this NPU. For French/English dictation, start with language set to Auto.",
     "estimatedScores": "Indicative catalog ratings, not measurements on this computer."
+  },
+  "managed": {
+    "modelsTitle": "Models approved by your organization",
+    "modelsDescription": "Your organization supplies and updates the available models through Company Portal.",
+    "modelName": "Nemotron 3.5 · Intel NPU · 10 min",
+    "modelDescription": "French, English and mixed-language dictation, up to ten minutes. Text is inserted when recording stops.",
+    "active": "Active model",
+    "activate": "Activate this model",
+    "repair": "Model files are missing. Reinstall Handy from Company Portal.",
+    "glossaryTitle": "Included financial vocabulary ({{count}} terms)",
+    "glossaryDescription": "Shared French/English vocabulary. Known variants and acronym casing are corrected after recognition. Ambiguous everyday words are preserved; this does not guarantee recognition of every term. Your personal words below are kept separately."
   }
 }

@@ -24,6 +24,14 @@ pub fn is_npu_model(model_id: &str) -> bool {
 }
 
 pub fn nemotron_dir_for(app: &AppHandle, model_id: &str) -> Result<PathBuf, String> {
+    if crate::managed::enabled() {
+        crate::managed::require_allowed(model_id)?;
+        return app
+            .path()
+            .resource_dir()
+            .map(|p| p.join("resources/npu"))
+            .map_err(|e| e.to_string());
+    }
     let directory = match model_id {
         NEMOTRON_MODEL_ID => "nemotron-npu-pilot",
         NEMOTRON_STREAM_MODEL_ID => "nemotron-npu-streaming",

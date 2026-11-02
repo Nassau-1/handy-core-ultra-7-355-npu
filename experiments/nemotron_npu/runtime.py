@@ -61,7 +61,9 @@ class Runtime:
 
     @property
     def max_samples(self):
-        return self.meta.get('max_samples', (self.meta['frames']-1)*160)
+        if 'max_samples' in self.meta:
+            return self.meta['max_samples']
+        return (self.meta['frames']-1)*160
 
     def decode(self, encoded, valid, state=None):
         state = {} if state is None else state
@@ -119,7 +121,7 @@ def serve(runtime, processor, writer):
         writer.write((json.dumps(payload, ensure_ascii=False)+'\n').encode('utf-8'))
         writer.flush()
 
-    limit = getattr(runtime, 'max_samples', (runtime.meta['frames']-1)*160)
+    limit = runtime.max_samples
     send({'ready': True, 'encoder_device': runtime.device, 'predictor_device': runtime.predictor_device,
           'joint_device': runtime.joint_device, 'max_samples': limit,
           'device': 'NPU' if runtime.device == runtime.predictor_device == runtime.joint_device == 'NPU' else 'hybrid'})
@@ -156,8 +158,9 @@ def serve(runtime, processor, writer):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--artifact', type=Path, required=True)
-    p.add_argument('--cache', type=Path, required=True)
+    p.add_argument('--artifact', type=Path)
+    p.add_argument('--cache', type=Path)
+    p.add_argument('--probe', action='store_true', help='Check imports/devices without compiling a model')
     p.add_argument('--model', type=Path)
     p.add_argument('--device', choices=['NPU', 'CPU'], default='NPU')
     p.add_argument('--compiler', choices=['PLUGIN', 'DRIVER'], default='PLUGIN')
@@ -169,10 +172,24 @@ def main():
     p.add_argument('--repeat', type=int, default=2)
     p.add_argument('--report', type=Path)
     args = p.parse_args()
+    if args.probe:
+        print(json.dumps({'openvino': ov.__version__, 'devices': ov.Core().available_devices}))
+        return
+    if args.artifact is None or args.cache is None:
+        p.error('--artifact and --cache are required')
     # Reserve stdout for protocol/text even if native libraries print to fd 1.
     writer = os.fdopen(os.dup(sys.stdout.fileno()), 'wb')
     os.dup2(sys.stderr.fileno(), sys.stdout.fileno())
     if args.worker:
+        writer.write(b'{"stage":"checking_driver"}\n')
+        writer.flush()
+        try:
+            from preflight import check_windows
+            check_windows()
+        except Exception as error:
+            writer.write((json.dumps({'ready': False, 'error': str(error)})+'\n').encode('utf-8'))
+            writer.flush()
+            raise SystemExit(1)
         writer.write(b'{"stage":"compiling"}\n')
         writer.flush()
     metadata = json.loads((args.artifact/'metadata.json').read_text(encoding='utf-8'))

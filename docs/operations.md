@@ -1,64 +1,73 @@
 # Windows and Intune operations
 
-The target catalog is **Intune Company Portal**. A custom Win32 app does not need
-publication in the public Microsoft Store. Microsoft documents the required
-[silent installer and .intunewin preparation](https://learn.microsoft.com/en-us/intune/app-management/deployment/create-win32-package)
-and [Win32 settings](https://learn.microsoft.com/en-us/intune/app-management/deployment/add-win32).
+## Managed release 0.11.0
 
-## Build outputs
+The Company Portal distribution contains the app, five Nemotron streaming graphs,
+tokenizer, frozen OpenVINO runtime and shared financial vocabulary. CI exports the
+model from pinned NVIDIA weights; it does not copy a developer's model cache.
+The `.intunewin` wrapper additionally includes Intel's signed NPU driver
+32.0.100.5540. MSI/NSIS used separately require that prerequisite separately.
 
-The Windows workflow produces MSI/EXE plus `handy-ultra355-intune` containing:
-`Install.intunewin`, `Detect.ps1`, `Require-CoreUltra355.ps1`, `intune-metadata.json`.
-The metadata contains the exact MSI ProductCode, version, install/uninstall commands
-and package SHA256. Never invent or reuse a ProductCode from another release.
+Installation runs as SYSTEM. It verifies installer hashes and Intel signature,
+leaves a newer driver intact, runs Intel `--silent` without `--reboot`, and returns
+3010 after a driver update. Handy refuses compilation until Windows has restarted.
+The driver is never uninstalled or downgraded by Handy removal/rollback.
+Compilation runs only as the signed-in user, with a per-user LocalAppData cache.
 
-The package includes model, runtime and app. It does not install an Intel driver,
-modify security policies or compile the model as SYSTEM. Compilation happens when
-the user loads the model and writes only to their LocalAppData cache.
+## Build and source policy
 
-## Intune configuration
+Run the **Core Ultra 355 NPU Windows and Intune** workflow against the reviewed
+commit. It produces MSI/EXE and `handy-ultra355-intune` containing
+`Install.intunewin`, `Detect.ps1`, `Require-CoreUltra355.ps1` and
+`intune-metadata.json`. The metadata supplies the exact version, ProductCode,
+commands and hashes. Never reuse detection/uninstall codes from another build.
+**GitHub Actions builds artifacts; it does not update Intune automatically.**
 
-1. Apps > Windows > Add > Windows app (Win32); select `Install.intunewin`.
-2. Display name `Handy Core Ultra 355 NPU (Preview)`, publisher `Nassau-1`.
-3. Copy the exact commands from `intune-metadata.json`. Install behavior **System**;
-   60-minute install limit, no forced reboot. Return 0 success, 3010 soft reboot,
-   1618 retry; 1603 failure. Standard MSI error defaults apply.
-4. Architecture x64. The portal offered Windows 11 24H2 as its newest minimum
-   selector; the custom script additionally enforces 25H2/build 26200+. Use
-   custom requirement `Require-CoreUltra355.ps1`: 64-bit, SYSTEM, string equals `True`.
-5. Custom detection `Detect.ps1`: 64-bit; success requires exit 0 and stdout.
-   Signature enforcement only if scripts have actually been signed.
-6. The owner requested availability to **All Users** on 2026-10-30. Use
-   **Available for enrolled devices**, with the CPU/OS requirement enforced.
-   This is an optional Preview, not a Required/ESP deployment. Real-device
-   acceptance is still pending and must be stated in the catalog description.
+- [Model policy](../packaging/managed-policy.json): owner controls enabled IDs.
+  The initial managed list permits only `nemotron-35-npu-ten-minute`.
+- [Financial vocabulary](../packaging/finance-glossary.json): shared FR/EN terms
+  and explicit aliases. Add terms here, test ordinary speech/amounts, build and
+  deploy a new version. This does not overwrite user `custom_words`.
+- Empty alias lists are reference vocabulary, not automatic corrections.
+  The runtime has no glossary decoder prompt; no fine-tuning is claimed.
+- [Driver lock](../packaging/intel-driver-lock.json): immutable vendor installer.
+- [Model card draft](huggingface-model-card.md): upstream provenance and limits.
 
-The requirement checks the CPU/OS, not driver readiness or measured NPU performance.
-Verify Intel NPU driver, WebView2 and App Control acceptance on the pilot.
+## Existing tenant configuration (read-only inspection, 2026-11-02)
 
-## Maintenance and rollback
+MCI still serves **Handy Core Ultra 355 NPU (Preview) 0.10.0**, describing Whisper
+Turbo INT8. There are no dependencies or supersedence relationships. Assignment
+is **Available for enrolled devices / All Users**, with no Required assignment.
+The install context is SYSTEM; the CPU/OS requirement script applies; detection
+is a 64-bit custom script. This observation is not evidence of a new rollout.
 
-Upstream self-update is disabled. Test future MSI upgrades, then configure Intune
-supersedence/version detection from the new artifact. Uninstall using the exact
-MSI ProductCode command in metadata. User history and cache remain unless the user
-explicitly removes them. Upstream Handy has a separate identity and is unaffected.
+## Updating the existing optional app
 
-On 2026-10-30, catalog upload completed and the saved **Available for enrolled
-devices / All Users** assignment was verified. No Required assignment was created.
-Standard-user installation through Company Portal and real NPU execution remain
-unverified; the target is unavailable. CI proves packaging behavior, not endpoint
-policy acceptance or NPU performance.
+1. Validate the exact MSI and NPU payload on the pilot, including a ten-minute
+   request, short FR/EN requests, model restrictions and personal vocabulary.
+2. In Intune, edit the existing app package and upload `Install.intunewin`.
+3. Set name/description/version to the managed Nemotron ten-minute distribution.
+   Copy both commands from the matching `intune-metadata.json`.
+4. Retain SYSTEM, x64 and `Require-CoreUltra355.ps1` (64-bit, string equals True).
+   The requirement script enforces Windows 11 25H2/build 26200 and exact 355 CPU.
+5. Replace detection with this build's `Detect.ps1`, running as 64-bit SYSTEM.
+   Retain return codes 0 success, 3010 soft reboot, 1618 retry and 1603 failure.
+   Keep restart behavior without forced action; tell users to restart after the
+   driver update before dictating. Do not create a reboot deadline inadvertently.
+6. Preserve optional All Users availability. Do not turn it into Required/ESP.
+7. Verify upload completion and displayed version, commands, detection and
+   assignments; then verify Company Portal installation on an eligible device.
 
-## Pilot follow-up — 2026-10-31
+## Validation and rollback
 
-The pilot is now available. Driver 32.0.100.5540 was installed and the machine
-rebooted. A small NPU arithmetic test succeeds, but the bundled Whisper Turbo
-model did not finish loading before the test was stopped after 18 minutes due to
-fan noise. The CPU performs model compilation before NPU inference starts; an
-idle NPU graph during compilation is not evidence of CPU inference fallback.
+CI verifies frontend lint/build, native policy/glossary/NPU tests and clippy,
+MSI installation/detection, complete payload hashes, missing-NPU errors and
+uninstall. Hosted runners have no NPU: they install MSI directly and unit-test
+installer decision logic. Hardware and the actual driver-upgrade branch require
+an eligible pilot; never claim hosted CI tested a driver installation.
 
-Whisper Turbo Q8 on Intel Graphics is the working pilot configuration. The owner
-confirmed microphone capture, Ctrl+Space and insertion into Notepad. See the
-[pilot verification record](verification-2026-10-31.md) for timings and limits.
-Do not advertise the NPU model as hardware-validated or roll the loading patch
-out through Intune based solely on CI results.
+Keep the previous package until the new install is verified. Preserve user
+settings, history, recordings and shared Hugging Face caches. The MSI upgrade
+removes its owned old Whisper files. Remove only the specifically retired local
+40-second Nemotron payload/cache after the replacement is proven. A rollback
+must not remove or downgrade Intel's driver.

@@ -1,0 +1,7 @@
+{
+  "edition": "MCI",
+  "managed": true,
+  "revision": "2026-11-02",
+  "default_model": "nemotron-35-npu-ten-minute",
+  "allowed_models": ["nemotron-35-npu-ten-minute"]
+}

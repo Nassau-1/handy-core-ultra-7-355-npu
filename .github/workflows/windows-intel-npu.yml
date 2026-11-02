@@ -21,11 +21,12 @@ jobs:
         with:
           components: rustfmt
       - run: python -m unittest discover -s scripts/tests -v
+      - run: ./scripts/test_driver_policy.ps1
       - run: bun install --frozen-lockfile
       - run: bun run lint
       - run: bun run build
       - name: Format changed Rust files
-        run: rustfmt --check --edition 2021 src-tauri/src/windows_npu.rs src-tauri/src/main.rs src-tauri/src/managers/model.rs src-tauri/src/managers/transcription.rs
+        run: rustfmt --check --edition 2021 src-tauri/src/windows_npu.rs src-tauri/src/main.rs src-tauri/src/managers/model.rs src-tauri/src/managers/transcription.rs src-tauri/src/managed.rs src-tauri/src/audio_toolkit/finance.rs
   windows:
     needs: checks
     uses: ./.github/workflows/build.yml

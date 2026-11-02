@@ -539,6 +539,7 @@ impl TranscriptionManager {
         model_id: &str,
         device_index: Option<usize>,
     ) -> Result<()> {
+        crate::managed::require_allowed(model_id).map_err(anyhow::Error::msg)?;
         apply_accelerator_settings(&self.app_handle);
 
         let load_start = std::time::Instant::now();
@@ -1874,6 +1875,15 @@ fn post_process_transcription_text(
             )
         } else {
             raw
+        };
+
+        let corrected = if crate::managed::enabled() {
+            crate::audio_toolkit::finance::apply_finance_glossary(
+                &corrected,
+                &settings.custom_words,
+            )
+        } else {
+            corrected
         };
 
         let without_fillers = remove_filler_words(

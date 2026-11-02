@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import numpy as np
 
-from runtime import serve
+from runtime import Runtime, serve
 
 
 class ProtocolTests(unittest.TestCase):
@@ -17,7 +17,7 @@ class ProtocolTests(unittest.TestCase):
             self.calls.append((audio.copy(), language))
             return 'été forecast', {'end_to_end_seconds': 0.01}
 
-        self.runtime = SimpleNamespace(meta={'frames': 1024}, device='NPU',
+        self.runtime = SimpleNamespace(meta={'frames': 1024}, max_samples=163680, device='NPU',
             predictor_device='NPU', joint_device='NPU', transcribe=transcribe)
 
     def run_worker(self, data, error=None):
@@ -47,6 +47,11 @@ class ProtocolTests(unittest.TestCase):
         self.runtime.max_samples = 600*16000
         result = self.run_worker(b'{"samples":9600001}\n', ValueError)
         self.assertEqual(result[0]['max_samples'], 9600000)
+
+    def test_production_metadata_does_not_require_legacy_utterance_frames(self):
+        runtime = Runtime.__new__(Runtime)
+        runtime.meta = {'mode': 'cached-streaming', 'max_samples': 9600000}
+        self.assertEqual(runtime.max_samples, 9600000)
         self.assertEqual(self.calls, [])
 
     def test_truncated_frame_does_not_reach_inference(self):

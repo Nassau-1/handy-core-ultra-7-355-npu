@@ -23,3 +23,12 @@
 - [ ] Add release signing when a signing identity is available.
 - [ ] Evaluate live text during capture separately; the ten-minute engine currently processes fragments after recording stops.
 - [ ] Register Course Impact dispatch separately if this project is connected to the Wiki.
+
+## Managed distribution — 2026-11-02
+
+- [x] Inspect live Intune: old Whisper Preview 0.10.0, no dependencies, optional All Users.
+- [x] Implement bundled ten-minute model, native allowlist and shared financial vocabulary.
+- [ ] Validate 0.11.0 Windows build, clean install, upgrade and installed NPU transcription.
+- [ ] Update the existing optional Intune app with the verified package and exact detection metadata.
+- [ ] Remove retired pilot payloads after successful installed replacement.
+- [ ] Publish converted graphs on Hugging Face after owner specifies namespace/visibility.

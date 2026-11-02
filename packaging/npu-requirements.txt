@@ -1,5 +1,2 @@
-openvino==2026.2.1
-openvino-genai==2026.2.1.0
-openvino-tokenizers==2026.2.1.0
-numpy==2.4.6
+-r ../experiments/nemotron_npu/requirements.txt
 pyinstaller==6.16.0

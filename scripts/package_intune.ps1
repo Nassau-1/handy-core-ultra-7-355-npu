@@ -21,6 +21,14 @@ $name = Get-MsiProperty 'ProductName'
 if ($code -notmatch '^\{[A-F0-9-]{36}\}$' -or $name -ne 'Handy Core Ultra 355 NPU') { throw "Unexpected MSI identity: name=$name; code=$code" }
 Copy-Item -LiteralPath $msi -Destination (Join-Path $source 'HandyNpu.msi')
 Copy-Item -LiteralPath (Join-Path $repo 'packaging\intune\Install.ps1') -Destination $source
+Copy-Item -LiteralPath (Join-Path $repo 'packaging\intune\NpuDriver.ps1') -Destination $source
+Copy-Item -LiteralPath (Join-Path $repo 'packaging\intel-driver-lock.json') -Destination $source
+$driverLock = Get-Content -LiteralPath (Join-Path $source 'intel-driver-lock.json') -Raw | ConvertFrom-Json
+$driverFile = Join-Path $source $driverLock.filename
+Invoke-WebRequest -Uri $driverLock.url -OutFile $driverFile
+if ((Get-FileHash -LiteralPath $driverFile -Algorithm SHA256).Hash -ne $driverLock.sha256) { throw 'Intel driver hash mismatch' }
+$driverSignature = Get-AuthenticodeSignature -LiteralPath $driverFile
+if ($driverSignature.Status -ne 'Valid' -or $driverSignature.SignerCertificate.Subject -notmatch '(^|,\s*)O=Intel Corporation(,|$)') { throw 'Intel driver signature mismatch' }
 @{ productCode=$code; version=$version; sha256=(Get-FileHash -LiteralPath $msi -Algorithm SHA256).Hash } |
     ConvertTo-Json | Set-Content -LiteralPath (Join-Path $source 'package.json') -Encoding utf8
 $detect = @'
@@ -50,7 +58,9 @@ $metadata = @{
     uninstallCommand="msiexec.exe /x $code /qn /norestart";
     requirement='Require-CoreUltra355.ps1; 64-bit SYSTEM; string equals True';
     detection='Detect.ps1; 64-bit SYSTEM; success exit + nonempty stdout';
-    assignments='None created by build; owner requested optional All Users Preview with CPU/OS eligibility';
+    assignments='None created by build; preserve optional All Users with CPU/OS eligibility';
+    driverVersion=$driverLock.version;
+    reboot='Return 3010 after driver upgrade; no forced reboot; Handy blocks NPU compilation until Windows restarts';
     packageSha256=(Get-FileHash -LiteralPath (Join-Path $output 'Install.intunewin') -Algorithm SHA256).Hash
 }
 $metadata | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $output 'intune-metadata.json') -Encoding utf8

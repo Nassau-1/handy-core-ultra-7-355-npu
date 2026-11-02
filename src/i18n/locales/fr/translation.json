@@ -751,5 +751,16 @@
     "dismiss": "Fermer",
     "unmeasured": "La vitesse et la précision n’ont pas été mesurées sur ce NPU. Pour dicter en français et en anglais, commencez avec la langue Auto.",
     "estimatedScores": "Notes indicatives du catalogue, sans mesure sur cet ordinateur."
+  },
+  "managed": {
+    "modelsTitle": "Modèles approuvés par votre organisation",
+    "modelsDescription": "Votre organisation fournit et met à jour les modèles disponibles via le Portail d’entreprise.",
+    "modelName": "Nemotron 3.5 · Intel NPU · 10 min",
+    "modelDescription": "Dictée en français, anglais et franglais, jusqu’à dix minutes. Le texte est inséré à l’arrêt de l’enregistrement.",
+    "active": "Modèle actif",
+    "activate": "Activer ce modèle",
+    "repair": "Des fichiers du modèle sont absents. Réinstallez Handy depuis le Portail d’entreprise.",
+    "glossaryTitle": "Vocabulaire financier inclus ({{count}} termes)",
+    "glossaryDescription": "Lexique commun français/anglais. Les variantes connues et la casse des acronymes sont corrigées après reconnaissance. Les mots ordinaires ambigus sont préservés ; cela ne garantit pas la reconnaissance de chaque terme. Vos mots personnels ci-dessous restent séparés."
   }
 }
