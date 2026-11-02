@@ -754,13 +754,18 @@
   },
   "managed": {
     "modelsTitle": "Modèles approuvés par votre organisation",
-    "modelsDescription": "Votre organisation fournit et met à jour les modèles disponibles via le Portail d’entreprise.",
+    "modelsDescription": "Votre organisation choisit le modèle. Téléchargez-le une fois depuis Hugging Face ; la dictée fonctionne ensuite hors connexion.",
     "modelName": "Nemotron 3.5 · Intel NPU · 10 min",
     "modelDescription": "Dictée en français, anglais et franglais, jusqu’à dix minutes. Le texte est inséré à l’arrêt de l’enregistrement.",
     "active": "Modèle actif",
     "activate": "Activer ce modèle",
     "repair": "Des fichiers du modèle sont absents. Réinstallez Handy depuis le Portail d’entreprise.",
     "glossaryTitle": "Vocabulaire financier inclus ({{count}} termes)",
-    "glossaryDescription": "Lexique commun français/anglais. Les variantes connues et la casse des acronymes sont corrigées après reconnaissance. Les mots ordinaires ambigus sont préservés ; cela ne garantit pas la reconnaissance de chaque terme. Vos mots personnels ci-dessous restent séparés."
+    "glossaryDescription": "Lexique commun français/anglais. Les variantes connues et la casse des acronymes sont corrigées après reconnaissance. Les mots ordinaires ambigus sont préservés ; cela ne garantit pas la reconnaissance de chaque terme. Vos mots personnels ci-dessous restent séparés.",
+    "download": "Télécharger le modèle approuvé (2,6 Go)",
+    "cancelDownload": "Annuler le téléchargement",
+    "downloadProgress": "Téléchargement : {{percent}} %",
+    "awaitingPublication": "La publication du modèle approuvé est en préparation. Une mise à jour de l’application activera son téléchargement.",
+    "verifying": "Vérification de l’intégrité des fichiers…"
   }
 }

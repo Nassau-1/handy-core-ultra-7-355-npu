@@ -1,8 +1,6 @@
 ---
-license: other
-license_name: openmdw-1.1
-license_link: https://openmdw.ai/license/1-1/
-base_model: nvidia/nemotron-3.5-asr-streaming-0.6b
+license: openmdw-1.1
+library_name: openvino
 language:
   - fr
   - en
@@ -15,8 +13,6 @@ tags:
 
 # Nemotron 3.5 ASR Streaming 0.6B — Intel NPU conversion
 
-**Draft for publication; no Hugging Face repository has been published yet.**
-Remove this banner and replace the publication metadata after owner review.
 This is a conversion of pretrained NVIDIA weights, with no fine-tuning and no
 financial-domain training. It is not an official NVIDIA or Intel release.
 
@@ -35,7 +31,7 @@ explicit and persist across fragments within a request, then reset between
 requests. Device compilation and any execution precision choices are handled
 by OpenVINO and the Intel NPU plugin.
 
-Requires the custom [runtime and export code](https://github.com/Nassau-1/handy-core-ultra-7-355-npu/tree/codex/npu-loading-reliability/experiments/nemotron_npu).
+Requires the custom [runtime and export code](https://github.com/Nassau-1/handy-core-ultra-7-355-npu/tree/3fcb6b14e507b5a21c6e15c3df21da820ec0a251/experiments/nemotron_npu).
 This is not a standard `AutoModel` or Optimum checkpoint. Do not upload compiled
 NPU blobs, Windows binaries, test recordings, user caches or private logs as model
 weights. Publish the portable IR, tokenizer/constants, inventory, licenses and
@@ -61,4 +57,4 @@ Short synthetic fixtures matched reference tokens. The long fixture matched
 words with a small punctuation/case difference; see the repository's validation
 policy and reports. No representative financial-domain WER has been established.
 The financial glossary belongs to Handy post-processing, not these model weights.
-Final managed-package measurements must be attached before publication.
+The FP32 export was revalidated on 2026-11-02: French, English, mixed and 39.8-second fixtures matched reference tokens. The 600-second fixture matched all 1,239 words; the largest group-relative L2 difference was 2.3724%, global L2 0.5691%. The frozen worker processed it in 10.0 seconds. Managed driver preflight adds about three seconds at worker startup. This is a functional synthetic test, not a representative accuracy benchmark.

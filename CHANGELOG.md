@@ -2,7 +2,7 @@
 
 ## 2026-11-02 — 0.11.0 managed distribution (validation in progress)
 
-- Bundle the pinned ten-minute Nemotron export and standalone NPU runtime in the installer.
+- Bundle the standalone NPU runtime; download the approved ten-minute FP32 Nemotron snapshot from Hugging Face with pinned hashes, resume and cancellation.
 - Enforce an owner-controlled model allowlist in native APIs and remove catalog/import controls.
 - Add a shared FR/EN financial glossary with conservative aliases, preserved amounts and separate personal vocabulary.
 - Package signed Intel NPU driver 32.0.100.5540 with version/hash checks, no downgrade or forced reboot, and a post-update reboot gate before compilation.

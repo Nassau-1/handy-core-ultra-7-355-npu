@@ -20,6 +20,7 @@ import {
 import type { ModelInfo } from "@/bindings";
 import managedPolicy from "../../../../packaging/managed-policy.json";
 import { Button } from "../../ui/Button";
+import { ManagedModelDownload } from "../../model-selector/ManagedModelDownload";
 
 const ManagedModelsSettings: React.FC = () => {
   const { t } = useTranslation();
@@ -50,7 +51,7 @@ const ManagedModelsSettings: React.FC = () => {
             )}
           </Button>
         ) : (
-          <p role="alert">{t("managed.repair")}</p>
+          <ManagedModelDownload />
         )}
       </div>
     </div>

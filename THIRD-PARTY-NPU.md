@@ -4,7 +4,7 @@ Handy is MIT licensed; see [LICENSE](LICENSE). This fork retains Handy and
 Bbrizly's Windows NPU prototype source history and notices. It is not an official
 Intel, OpenVINO or Handy release.
 
-The 0.11 managed distribution bundles an OpenVINO conversion of
+The 0.11 managed distribution downloads an approved OpenVINO conversion of
 [NVIDIA Nemotron 3.5 ASR Streaming 0.6B](https://huggingface.co/nvidia/nemotron-3.5-asr-streaming-0.6b),
 revision `ea30d66debe3740a08b573244286791d423d6b3e`, under
 [OpenMDW-1.1](packaging/OPENMDW-1.1.txt). The original model card and notices,

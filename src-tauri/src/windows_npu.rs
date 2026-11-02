@@ -28,8 +28,8 @@ pub fn nemotron_dir_for(app: &AppHandle, model_id: &str) -> Result<PathBuf, Stri
         crate::managed::require_allowed(model_id)?;
         return app
             .path()
-            .resource_dir()
-            .map(|p| p.join("resources/npu"))
+            .app_local_data_dir()
+            .map(|p| p.join("managed-models").join(crate::managed::payload_id()))
             .map_err(|e| e.to_string());
     }
     let directory = match model_id {
@@ -44,6 +44,11 @@ pub fn nemotron_dir_for(app: &AppHandle, model_id: &str) -> Result<PathBuf, Stri
 }
 
 pub fn nemotron_available_for(app: &AppHandle, model_id: &str) -> bool {
+    if crate::managed::enabled() {
+        return nemotron_dir_for(app, model_id)
+            .is_ok_and(|root| crate::managed::payload_complete(&root))
+            && nemotron_worker_for(app, model_id).is_ok_and(|worker| worker.is_file());
+    }
     nemotron_dir_for(app, model_id).is_ok_and(|root| {
         let common = [
             "worker/nemotron-npu.exe",
@@ -68,6 +73,18 @@ pub fn nemotron_available_for(app: &AppHandle, model_id: &str) -> bool {
                     .all(|extension| root.join(format!("artifact/{name}.{extension}")).is_file())
             })
     })
+}
+
+fn nemotron_worker_for(app: &AppHandle, model_id: &str) -> Result<PathBuf, String> {
+    if crate::managed::enabled() {
+        crate::managed::require_allowed(model_id)?;
+        app.path()
+            .resource_dir()
+            .map(|p| p.join("resources/npu/worker/nemotron-npu.exe"))
+            .map_err(|e| e.to_string())
+    } else {
+        nemotron_dir_for(app, model_id).map(|p| p.join("worker/nemotron-npu.exe"))
+    }
 }
 const MAX_AUDIO_SAMPLES: usize = 16_000 * 600;
 const LOAD_TIMEOUT: Duration = Duration::from_secs(20 * 60);
@@ -174,7 +191,7 @@ impl Worker {
         let resources = app.path().resource_dir().map_err(|e| e.to_string())?;
         let nemotron = is_nemotron_model(model_id);
         let exe = if nemotron {
-            nemotron_dir_for(app, model_id)?.join("worker/nemotron-npu.exe")
+            nemotron_worker_for(app, model_id)?
         } else {
             resources.join("resources/npu/worker/handy-npu-worker.exe")
         };

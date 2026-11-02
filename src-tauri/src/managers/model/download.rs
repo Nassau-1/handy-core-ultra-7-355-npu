@@ -49,6 +49,49 @@ enum HttpDownloadEvent<'a> {
 }
 
 impl ModelManager {
+    /// Report overall progress across the pinned multi-file managed model.
+    pub(super) async fn download_managed_file(
+        &self,
+        model_id: &str,
+        url: &str,
+        partial_path: &Path,
+        file: &crate::managed::ModelFile,
+        completed: u64,
+        total: u64,
+        cancel: &CancellationToken,
+    ) -> Result<HttpDownloadOutcome> {
+        Self::download_http_resumable_with_events(
+            model_id,
+            url,
+            partial_path,
+            Some(file.size),
+            Some(&file.sha256),
+            cancel,
+            &|event| match event {
+                HttpDownloadEvent::Progress(progress) => {
+                    let downloaded = completed + progress.downloaded.min(file.size);
+                    let _ = self.app_handle.emit(
+                        "model-download-progress",
+                        DownloadProgress {
+                            model_id: model_id.into(),
+                            downloaded,
+                            total,
+                            percentage: downloaded as f64 * 100.0 / total as f64,
+                        },
+                    );
+                }
+                HttpDownloadEvent::VerificationStarted => {
+                    let _ = self.app_handle.emit("model-verification-started", model_id);
+                }
+                HttpDownloadEvent::VerificationCompleted => {
+                    let _ = self
+                        .app_handle
+                        .emit("model-verification-completed", model_id);
+                }
+            },
+        )
+        .await
+    }
     /// Verifies the SHA256 of `path` against `expected_sha256` (if provided).
     /// On mismatch or read error the partial file is deleted and an error is returned,
     /// so the next download attempt always starts from a clean state.
@@ -85,7 +128,7 @@ impl ModelManager {
     }
 
     /// Computes the SHA256 hex digest of a file, reading in 64KB chunks to handle large models.
-    fn compute_sha256(path: &Path) -> Result<String> {
+    pub(super) fn compute_sha256(path: &Path) -> Result<String> {
         let mut file = File::open(path)?;
         let mut hasher = Sha256::new();
         let mut buffer = [0u8; 65536];

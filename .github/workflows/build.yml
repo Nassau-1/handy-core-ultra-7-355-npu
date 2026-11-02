@@ -527,8 +527,6 @@ jobs:
         if: inputs.bundle-npu
         shell: pwsh
         run: |
-          python -m pip install torch==2.15.0 --index-url https://download.pytorch.org/whl/cpu
-          if ($LASTEXITCODE -ne 0) { throw 'CPU build-time PyTorch installation failed' }
           python -m pip install -r packaging/npu-requirements.txt
           if ($LASTEXITCODE -ne 0) { throw 'NPU dependencies failed' }
           python -m unittest discover -s experiments/nemotron_npu -v
@@ -934,6 +932,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Managed policy tests failed' }
           cargo test --release --lib audio_toolkit::finance::tests --locked
           if ($LASTEXITCODE -ne 0) { throw 'Financial glossary tests failed' }
+          cargo test --release --lib managers::model::download::tests --locked
+          if ($LASTEXITCODE -ne 0) { throw 'Resumable download tests failed' }
           cargo clippy --release --lib --locked
           if ($LASTEXITCODE -ne 0) { throw 'Rust clippy failed' }
 

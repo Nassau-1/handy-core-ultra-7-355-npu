@@ -8,6 +8,7 @@ import ModelCard, { isLegacySource } from "./ModelCard";
 import HandyTextLogo from "../icons/HandyTextLogo";
 import { useModelStore } from "../../stores/modelStore";
 import managedPolicy from "../../../packaging/managed-policy.json";
+import { ManagedModelDownload } from "../model-selector/ManagedModelDownload";
 
 interface OnboardingProps {
   onModelSelected: () => void;
@@ -174,7 +175,7 @@ const Onboarding: React.FC<OnboardingProps> = ({
         <div className="space-y-6 pb-6">
           {managedPolicy.managed &&
             !models.some((model) => model.is_downloaded) && (
-              <p role="alert">{t("managed.repair")}</p>
+              <ManagedModelDownload />
             )}
           {models.some((m: ModelInfo) => m.is_downloaded) && (
             <div className="space-y-3">

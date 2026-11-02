@@ -6,7 +6,7 @@ Intune Company Portal package. Based on [Bbrizly's Windows NPU prototype](https:
 
 ## Status — 2026-11-02
 
-Managed 0.11.0 is being validated: complete Nemotron payload, embedded owner
+Managed 0.11.0 is being validated: approved FP32 model download from Hugging Face, embedded owner
 model policy, shared FR/EN financial glossary and signed Intel driver prerequisite
 in the Intune wrapper. Personal vocabulary and history are preserved. See the
 [distribution specification](docs/managed-npu-distribution-spec.md) and

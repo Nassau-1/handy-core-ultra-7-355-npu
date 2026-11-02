@@ -36,8 +36,9 @@ try {
     $models = @(Get-Content -LiteralPath $modelOut -Raw | ConvertFrom-Json)
     if ($models.Count -ne 1) { throw 'Managed edition exposed unapproved models' }
     $model = $models | Where-Object { $_.id -eq 'nemotron-35-npu-ten-minute' }
-    if (@($model).Count -ne 1 -or -not $model.is_downloaded -or -not $model.is_recommended) { throw 'Installed app cannot resolve the bundled NPU model' }
+    if (@($model).Count -ne 1 -or $model.is_downloaded -or -not $model.is_recommended) { throw 'Clean managed installation must advertise only the approved downloadable model' }
     $npu = Join-Path $install 'resources/npu'
+    if (Test-Path (Join-Path $npu 'artifact')) { throw 'Model weights must download from Hugging Face, not ship in the installer' }
     $probe = & (Join-Path $npu 'worker/nemotron-npu.exe') --probe
     if ($LASTEXITCODE -ne 0) { throw 'Installed NPU runtime cannot load' }
     $devices = ($probe | ConvertFrom-Json).devices

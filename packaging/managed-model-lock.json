@@ -1,0 +1,105 @@
+{
+  "model_id": "nemotron-35-npu-ten-minute",
+  "repo": "Nassau-1/nemotron-3.5-asr-streaming-0.6b-intel-npu",
+  "revision": "8cdf171b50d033d3d66af82161591496fc230714",
+  "storage_precision": "FP32",
+  "upstream_repo": "nvidia/nemotron-3.5-asr-streaming-0.6b",
+  "upstream_revision": "ea30d66debe3740a08b573244286791d423d6b3e",
+  "files": [
+    {
+      "path": "artifact/encoder_stream.bin",
+      "size": 2438644736,
+      "sha256": "8c0629fda5c437c33b11b281b0b3c76f62f2d9bfb1d627b00e16fa6f3358eac4"
+    },
+    {
+      "path": "artifact/encoder_stream.xml",
+      "size": 2112305,
+      "sha256": "70abc4aec3435854ac3ff93a958697d26dd91f3ef7e3af7f0ccc51deb28cb5e0"
+    },
+    {
+      "path": "artifact/frontend.npz",
+      "size": 133688,
+      "sha256": "f272e3154e83adc152ee309d32ccca779a0c5d144c69ad201e7534ec80b47734"
+    },
+    {
+      "path": "artifact/joint.bin",
+      "size": 33557640,
+      "sha256": "c875a1eececfc318e2ebe5966235afd69279024acde3e858d13507b11c40a820"
+    },
+    {
+      "path": "artifact/joint.xml",
+      "size": 5958,
+      "sha256": "8be7f9ae5a13177858c613e51f37d4871b8ed3f5f04c95e87fba46cbf6edf036"
+    },
+    {
+      "path": "artifact/metadata.json",
+      "size": 753,
+      "sha256": "d18c7c773352374165c7b25e3db05af97c236dccab61f57142cd90ebcfe462de"
+    },
+    {
+      "path": "artifact/predictor.bin",
+      "size": 61381164,
+      "sha256": "69e1dbc3cbcddcf8bdb68970f0e74e8e3cf2b8dd8e68616b85beb8c2b2fad510"
+    },
+    {
+      "path": "artifact/predictor.xml",
+      "size": 24361,
+      "sha256": "1814cfec5fe58c908ea0a565328c31e72ed41184963251c1f818a2200ef8332d"
+    },
+    {
+      "path": "artifact/subsampler_first.bin",
+      "size": 18387084,
+      "sha256": "0563cd4aefb418e2cfd0e380393a3406b245f4a827dd74f067d60bcfe3572e31"
+    },
+    {
+      "path": "artifact/subsampler_first.xml",
+      "size": 34251,
+      "sha256": "ae14b7fc918d1d9862594c1d4c9c5cd2783713d4906ab2a6463fbb270cd20b1d"
+    },
+    {
+      "path": "artifact/subsampler_step.bin",
+      "size": 18387084,
+      "sha256": "0563cd4aefb418e2cfd0e380393a3406b245f4a827dd74f067d60bcfe3572e31"
+    },
+    {
+      "path": "artifact/subsampler_step.xml",
+      "size": 34258,
+      "sha256": "1932ff659db5adaec665ea6f5ddfc59f76b65836d53ac31e416d4c321c46ce96"
+    },
+    {
+      "path": "tokenizer/processor_config.json",
+      "size": 2519,
+      "sha256": "ec47870f1091ea4f25539208387b45b902c92d0e3f997a30061ef88f73437ab0"
+    },
+    {
+      "path": "tokenizer/tokenizer.json",
+      "size": 752051,
+      "sha256": "3f3d481deb073b64c2082e8c7860d487a3a62774bf4e9e4faac83007e181f246"
+    },
+    {
+      "path": "tokenizer/tokenizer_config.json",
+      "size": 881,
+      "sha256": "5c641c5b3f50702a60082690d27c1ce7fcb5a92c4a624793bcae0f21eda3d6e0"
+    },
+    {
+      "path": "LICENSE.txt",
+      "size": 2630,
+      "sha256": "6cbef5be9e6939c37ac6368ec9587dc2df80913a032e38d8dbfe44de011cb8ff"
+    },
+    {
+      "path": "NVIDIA-MODEL-CARD.md",
+      "size": 54239,
+      "sha256": "a3344caadf796c084c6b90a9fa5978068fd45e3a019790bebe50489bb3c0f7b7"
+    },
+    {
+      "path": "TRANSFORMERS-LICENSE.txt",
+      "size": 11418,
+      "sha256": "77fd4710def9ec3c0f6225800e0235f15a425abd4a8b03559127fcd782612049"
+    },
+    {
+      "path": "source-manifest.json",
+      "size": 1454,
+      "sha256": "23d1e31137721605055494887e6f67871dad1ac045d9b149e3352837eb067d5a"
+    }
+  ]
+}

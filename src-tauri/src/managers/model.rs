@@ -20,6 +20,8 @@ use tar::Archive;
 use tauri::{AppHandle, Emitter, Manager};
 
 mod download;
+#[cfg(all(target_os = "windows", target_arch = "x86_64"))]
+mod managed_download;
 
 use download::{HttpDownloadOutcome, DOWNLOAD_STALL_TIMEOUT};
 
@@ -2313,9 +2315,11 @@ impl ModelManager {
 
     pub async fn download_model(&self, model_id: &str) -> Result<()> {
         if crate::managed::enabled() {
-            return Err(anyhow::anyhow!(
-                "Models are supplied by your organization's installer."
-            ));
+            crate::managed::require_allowed(model_id).map_err(anyhow::Error::msg)?;
+            #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
+            return self.download_managed_model(model_id).await;
+            #[cfg(not(all(target_os = "windows", target_arch = "x86_64")))]
+            return Err(anyhow::anyhow!("This managed model requires Windows x64."));
         }
         let model_info = {
             let models = self.available_models.lock().unwrap();

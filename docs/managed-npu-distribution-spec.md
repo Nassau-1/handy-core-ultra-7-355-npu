@@ -14,13 +14,15 @@ The old public preview and locally customized pilot are different distributions.
 
 1. Inspect the live Intune app, assignment, version and dependencies. Document the
    actual GitHub build-to-portal boundary; do not imply a push deploys to Intune.
-2. Bundle the pinned Nemotron model/worker in Program Files. Build reproducibly
-   from the original pinned NVIDIA weights and export code. Reuse the validated
-   streaming algorithm and retain per-user compilation cache.
+2. Bundle only the frozen worker in Program Files. Per owner instruction on
+   2026-11-02, retain FP32 weights and download through Handy from the public
+   `Nassau-1/nemotron-3.5-asr-streaming-0.6b-intel-npu` Hugging Face repository.
+   Pin an immutable commit, sizes and SHA256 values; support resume, cancellation
+   and atomic finalization. Model files and compiled caches stay per-user.
 3. Add a centrally authored allowlist, distributed with the application. The
    initial list contains only `nemotron-35-npu-ten-minute`. Enforce it in native
    enumeration, selection/loading, imports/rescan and downloads, including CLI.
-   Remove the public model catalog and import/download controls from this edition.
+   Remove the public catalog/import controls; offer only the approved model's download controls.
    Standard users must not be able to expand it through their settings.
 4. Package the verified Intel 32.0.100.5540 prerequisite for SYSTEM installation,
    version/hash/signature checks and explicit reboot handling. Never force a
@@ -33,7 +35,8 @@ The old public preview and locally customized pilot are different distributions.
 7. Prepare a Hugging Face model card/export manifest with original provenance,
    license and measured limitations. This is a converted architecture-specific
    deployment of NVIDIA weights, not new training. Public publication requires a
-   specified namespace and visibility; no machine cache or private audio/logs.
+   specified namespace and visibility; the owner approved the public Nassau-1
+   repository. No machine cache or private audio/logs.
 8. Include a versioned French/English financial glossary, independent of each
    user's custom words. Apply conservative exact aliases and acronym casing
    after ASR; no broad phonetic/fuzzy matching over the enterprise list, no

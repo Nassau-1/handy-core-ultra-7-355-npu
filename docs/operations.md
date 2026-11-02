@@ -2,11 +2,14 @@
 
 ## Managed release 0.11.0
 
-The Company Portal distribution contains the app, five Nemotron streaming graphs,
-tokenizer, frozen OpenVINO runtime and shared financial vocabulary. CI exports the
-model from pinned NVIDIA weights; it does not copy a developer's model cache.
-The `.intunewin` wrapper additionally includes Intel's signed NPU driver
-32.0.100.5540. MSI/NSIS used separately require that prerequisite separately.
+The Company Portal distribution contains the app, frozen OpenVINO runtime and
+shared financial vocabulary. The `.intunewin` wrapper additionally includes
+Intel's signed NPU driver 32.0.100.5540. MSI/NSIS used separately require that
+prerequisite separately. Model weights are not in Intune: Handy downloads only
+its approved FP32 snapshot from the public Nassau-1 Hugging Face repository.
+The source lock pins every file's size/SHA256 and the immutable HF commit.
+Downloads resume, cancel and finalize atomically after verification. Dictation
+works offline after the download. Model files and cache are per-user.
 
 Installation runs as SYSTEM. It verifies installer hashes and Intel signature,
 leaves a newer driver intact, runs Intel `--silent` without `--reboot`, and returns
@@ -22,6 +25,8 @@ commit. It produces MSI/EXE and `handy-ultra355-intune` containing
 `intune-metadata.json`. The metadata supplies the exact version, ProductCode,
 commands and hashes. Never reuse detection/uninstall codes from another build.
 **GitHub Actions builds artifacts; it does not update Intune automatically.**
+The build does not publish to Hugging Face either. Publish the validated FP32
+snapshot first, then pin its commit in `packaging/managed-model-lock.json`.
 
 - [Model policy](../packaging/managed-policy.json): owner controls enabled IDs.
   The initial managed list permits only `nemotron-35-npu-ten-minute`.
@@ -61,7 +66,7 @@ is a 64-bit custom script. This observation is not evidence of a new rollout.
 ## Validation and rollback
 
 CI verifies frontend lint/build, native policy/glossary/NPU tests and clippy,
-MSI installation/detection, complete payload hashes, missing-NPU errors and
+MSI installation/detection, complete runtime hashes, download transport tests and missing-NPU errors and
 uninstall. Hosted runners have no NPU: they install MSI directly and unit-test
 installer decision logic. Hardware and the actual driver-upgrade branch require
 an eligible pilot; never claim hosted CI tested a driver installation.

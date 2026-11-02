@@ -1,2 +1,2 @@
--r ../experiments/nemotron_npu/requirements.txt
+-r ../experiments/nemotron_npu/requirements-runtime.txt
 pyinstaller==6.16.0

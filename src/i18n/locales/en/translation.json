@@ -754,13 +754,18 @@
   },
   "managed": {
     "modelsTitle": "Models approved by your organization",
-    "modelsDescription": "Your organization supplies and updates the available models through Company Portal.",
+    "modelsDescription": "Your organization chooses the model. Download it once from Hugging Face; dictation then works offline.",
     "modelName": "Nemotron 3.5 · Intel NPU · 10 min",
     "modelDescription": "French, English and mixed-language dictation, up to ten minutes. Text is inserted when recording stops.",
     "active": "Active model",
     "activate": "Activate this model",
     "repair": "Model files are missing. Reinstall Handy from Company Portal.",
     "glossaryTitle": "Included financial vocabulary ({{count}} terms)",
-    "glossaryDescription": "Shared French/English vocabulary. Known variants and acronym casing are corrected after recognition. Ambiguous everyday words are preserved; this does not guarantee recognition of every term. Your personal words below are kept separately."
+    "glossaryDescription": "Shared French/English vocabulary. Known variants and acronym casing are corrected after recognition. Ambiguous everyday words are preserved; this does not guarantee recognition of every term. Your personal words below are kept separately.",
+    "download": "Download approved model (2.6 GB)",
+    "cancelDownload": "Cancel download",
+    "downloadProgress": "Downloading: {{percent}} %",
+    "awaitingPublication": "The approved model is being published. An application update will enable its download.",
+    "verifying": "Checking file integrity…"
   }
 }
