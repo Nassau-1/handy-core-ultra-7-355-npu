@@ -1,12 +1,16 @@
 # Changelog
 
-## 2026-11-02 — 0.11.0 managed distribution (validation in progress)
+## 2026-11-02 — 0.11.0 managed distribution
 
 - Bundle the standalone NPU runtime; download the approved ten-minute FP32 Nemotron snapshot from Hugging Face with pinned hashes, resume and cancellation.
 - Enforce an owner-controlled model allowlist in native APIs and remove catalog/import controls.
 - Add a shared FR/EN financial glossary with conservative aliases, preserved amounts and separate personal vocabulary.
 - Package signed Intel NPU driver 32.0.100.5540 with version/hash checks, no downgrade or forced reboot, and a post-update reboot gate before compilation.
 - Preserve optional Company Portal availability. Publishing a GitHub build alone does not update Intune.
+- Publish the validated package to the existing MCI Intune app; verify the updated metadata, complete content upload and retained optional All Users assignment.
+- Validate the final package on the NPU with full ten-minute audio, explicit oversize rejection and FR/EN/mixed financial fixtures.
+- Complete the permanent pilot upgrade through Company Portal; verify installed runtime hashes, retained settings/history, ten-minute NPU transcription and removal of the old MSI-owned Whisper model.
+- Correct 18 development commits to the owner's Nassau-1 GitHub identity with approval; preserve source trees, messages and dates.
 
 ## 2026-10-31 — Ten-minute NPU runtime
 

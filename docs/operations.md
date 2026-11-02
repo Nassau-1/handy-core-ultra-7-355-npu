@@ -38,13 +38,16 @@ snapshot first, then pin its commit in `packaging/managed-model-lock.json`.
 - [Driver lock](../packaging/intel-driver-lock.json): immutable vendor installer.
 - [Published model card](huggingface-model-card.md): upstream provenance and limits.
 
-## Existing tenant configuration (read-only inspection, 2026-11-02)
+## Published tenant configuration — 2026-11-02
 
-MCI still serves **Handy Core Ultra 355 NPU (Preview) 0.10.0**, describing Whisper
-Turbo INT8. There are no dependencies or supersedence relationships. Assignment
-is **Available for enrolled devices / All Users**, with no Required assignment.
-The install context is SYSTEM; the CPU/OS requirement script applies; detection
-is a 64-bit custom script. This observation is not evidence of a new rollout.
+MCI serves **Handy Core Ultra 355 NPU 0.11.0**, replacing the Whisper preview in
+the existing app `250df8a0-1d13-49be-9cb5-b776fff16455`. Intune confirmed the
+content upload and saved version; Company Portal shows 0.11.0. There are no
+dependencies or supersedence relationships. Assignment remains **Available for
+enrolled devices / All Users**, with no Required assignment. Installation runs
+as SYSTEM; the CPU/OS requirement script applies and detection is a 64-bit
+custom script. See the [validation record](verification-2026-11-02.md) for the
+exact build, ProductCode, package checksum and pilot acceptance boundary.
 
 ## Updating the existing optional app
 

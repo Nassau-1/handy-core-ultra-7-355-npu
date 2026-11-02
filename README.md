@@ -6,52 +6,48 @@ Intune Company Portal package. Based on [Bbrizly's Windows NPU prototype](https:
 
 ## Status — 2026-11-02
 
-Managed 0.11.0 is being validated: approved FP32 model download from Hugging Face, embedded owner
-model policy, shared FR/EN financial glossary and signed Intel driver prerequisite
-in the Intune wrapper. Personal vocabulary and history are preserved. See the
-[distribution specification](docs/managed-npu-distribution-spec.md) and
-[operations guide](docs/operations.md). The portal remains on Preview 1 until the
-new package has been verified and uploaded; a GitHub build does not deploy it.
+Managed **0.11.0** is published in the existing optional MCI Intune application.
+It downloads the approved FP32 model from Hugging Face, enforces an embedded
+model allowlist, includes a shared FR/EN financial glossary and installs the
+signed Intel NPU driver when needed. Personal vocabulary and history are retained.
+See the [distribution specification](docs/managed-npu-distribution-spec.md),
+[operations guide](docs/operations.md) and [validation record](docs/verification-2026-11-02.md).
 
-Experimental [Preview 1 release](https://github.com/Nassau-1/handy-core-ultra-7-355-npu/releases/tag/v0.10.0-npu-preview.1).
-Windows build, silent installation, model discovery and uninstall checks passed.
-Hardware tests on the Core Ultra 7 355 found the bundled Whisper NPU load still
-unresolved. A separate local **Nemotron 3.5 ASR Streaming 0.6B** pilot works on
-the NPU in French, English and mixed speech; the user validated microphone/paste
-without a fan surge on the original 40-second version.
+The final Windows package passed build, native tests, installation and removal
+checks. On the Core Ultra 7 355, its 600-second synthetic fixture transcribed in
+11.563 seconds with all 1,239 reference words and the ending preserved; cached
+model loading took 3.616 seconds. These are single-machine functional tests,
+not an accuracy or latency guarantee. Company Portal installation and the
+permanent pilot upgrade also passed; the installed ten-minute test took 14.261
+seconds, with all reference words and the ending preserved.
 
-The new cache-aware runtime supports complete dictations up to ten minutes,
-with all neural graphs on NPU and text inserted after recording stops. The
-600-second synthetic fixture takes about 10–11 seconds after stop. The permanent
-local upgrade and installed NPU smoke test passed; details are tracked in
-[verification](docs/verification-2026-10-31.md).
-These are local pilot changes; Preview 1 and the shared Intune distribution have
-not been replaced. See [reproduction and limitations](experiments/nemotron_npu/README.md).
-No latency or accuracy guarantee.
-No Microsoft Store certification or Intel endorsement is implied.
+The old [Whisper Preview 1 release](https://github.com/Nassau-1/handy-core-ultra-7-355-npu/releases/tag/v0.10.0-npu-preview.1)
+is historical; its NPU loading problem remains unresolved. No Microsoft Store
+certification or Intel endorsement is implied.
 
 ## Use
 
-The instructions below describe the published Whisper preview. For the optional
-locally validated Nemotron payloads, follow the [experiment README](experiments/nemotron_npu/README.md).
+Install **Handy Core Ultra 355 NPU** from Company Portal on an eligible Core Ultra
+7 355 with Windows 11 25H2 or later and WebView2. Restart Windows if the Intel
+driver was updated. Open Handy and download the single approved model (about
+2.6 GB) from [Hugging Face](https://huggingface.co/Nassau-1/nemotron-3.5-asr-streaming-0.6b-intel-npu).
+The download can be cancelled and resumed; all files are hash-verified. The first
+load prepares an NPU cache, reused on later starts. Dictation then works offline.
 
-Install the x64 MSI or setup EXE. Python and the pinned OpenVINO model are included;
-there is no separate model download. In Handy's model selector, choose
-**Whisper Turbo INT8 · Intel NPU**, then select French or Auto in language settings.
-The first model load can take up to 20 minutes while the NPU compiles it; subsequent
-loads use a per-user cache. Keep the model loaded between dictations for best latency.
-A compatible Intel NPU driver and Microsoft Edge WebView2 are required.
+Use the configured shortcut to start and stop dictation. French, English and mixed
+speech are supported up to ten minutes. Text is inserted after recording stops.
+Neural graphs run on OpenVINO `NPU`, with audio preparation and application control
+on CPU. Errors are explicit; there is no automatic CPU/GPU neural fallback.
 
-The selected NPU model always uses OpenVINO `NPU`. If initialization or inference
-fails, Handy displays an error; it never silently uses CPU/GPU. Other Handy models
-can be selected separately. Turbo does not translate to English or provide live
-streaming in this edition. Custom words use Handy's text correction, not a prompt.
+Only the model approved in the managed policy is exposed. The 167-term financial
+glossary applies conservative corrections after recognition; personal custom words
+remain separate and take precedence. This is not model fine-tuning or decoder bias.
 Local audio history follows Handy's settings; optional cloud post-processing must
 be deliberately configured by the user. The NPU worker itself has no network path.
 
 ## Distribution
 
-- Application: **Handy Core Ultra 355 NPU**, version 0.10.0.
+- Application: **Handy Core Ultra 355 NPU**, version 0.11.0.
 - Identity: `com.nassau.handy.ultra355npu`; coexists with upstream Handy.
 - Windows installer is per-machine; normal use requires no administrator rights.
 - Intune: [operations and catalog configuration](docs/operations.md).

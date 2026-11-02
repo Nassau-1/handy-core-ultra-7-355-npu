@@ -1,7 +1,7 @@
 # Managed NPU distribution validation — 2026-11-02
 
-Status: model publication verified; Windows package acceptance and tenant update
-remain pending. Do not interpret publication as an Intune rollout.
+Status: public model, final Windows package, Intune publication and permanent
+pilot upgrade through Company Portal verified.
 
 ## Model and hardware
 
@@ -64,8 +64,30 @@ imports successfully and enumerates CPU, GPU and NPU on the pilot.
 [Windows acceptance run](https://github.com/Nassau-1/handy-core-ultra-7-355-npu/actions/runs/41428029154)
 built commit `c3fb18036120f08a1d44ac2beb22dde96bd8e04b` and passed frontend checks,
 native NPU/policy/finance/download tests, clippy, package contents, silent machine
-installation/detection/runtime hashes and uninstall. Final pilot acceptance
-and a follow-up build containing the upgrade download screen remain pending.
+installation/detection/runtime hashes and uninstall.
+
+[Final Windows acceptance run](https://github.com/Nassau-1/handy-core-ultra-7-355-npu/actions/runs/41431834880)
+at `710c5aa7a4777e309c6a3719e411aa08a87d0ee8` passed all checks, including the
+upgrade download screen and final immutable model revision. Native checks cover
+6 NPU integration, 3 managed-policy, 5 financial correction and 19 HTTP download
+tests, in addition to the Python suites and frontend checks.
+
+The first accepted package downloaded the complete 19-file model through Handy.
+Cancellation at 890,916,329 bytes stopped disk growth; resume continued from that
+offset and finalized only after verification. The final package's model files
+are identical: its revised snapshot only changes repository documentation. To
+avoid duplicating disk storage on the pilot, those verified files were hardlinked
+into the final download staging folder, without a completion marker. Handy then
+verified and finalized them itself. A returning user was correctly routed to the
+single-model download screen; activation displayed only the approved model.
+
+Final native NPU tests passed: 600 seconds of audio transcribed in 11.563 seconds,
+with a 3.616-second cached model load, all 1,239 reference words and the ending
+preserved. A one-sample oversize request failed explicitly. FR/EN/mixed financial
+fixtures took 0.592/0.649/0.547 seconds, respectively; EBITDA and NOPAT corrections
+were present. `--list-models` exposed exactly one approved model and requesting
+an unapproved model failed. These synthetic tests do not establish domain WER;
+the English fixture still contains a recognition error (`RDCF`).
 
 The owner requested correction of the 18 development commits' Git identity and
 approved rewriting the development branch. They now use Nassau-1 and its GitHub
@@ -75,7 +97,52 @@ was unchanged. The original acceptance commit maps to
 commit IDs as historical evidence. Hugging Face's current model card links to
 the identical runtime source in the corrected history.
 
-The inspected MCI Intune app still serves Whisper Preview 0.10.0. GitHub Actions
-does not publish to Intune automatically. Preserve its optional All Users
-assignment and avoid forced reboot. Retired pilot payloads are retained until
-the replacement passes installed NPU validation.
+## Intune publication
+
+The existing MCI application `250df8a0-1d13-49be-9cb5-b776fff16455` was updated to
+**Handy Core Ultra 355 NPU 0.11.0**. Intune confirmed content upload complete and
+application saved; reloading showed the new version, description and commands.
+The optional All Users assignment was retained, with no required assignment or
+forced restart. The existing custom requirement enforces Core Ultra 7 355 and
+Windows build 26200 even though the generic OS selector reads Windows 11 24H2.
+
+- Build commit: `710c5aa7a4777e309c6a3719e411aa08a87d0ee8`.
+- MSI product: `{DB7623E1-3B8E-423F-BB00-CCAB2F53AC15}`.
+- Intune content SHA256: `7C59C6AB22D30689A041CA6448527EDF66F944A1129B2F1E9D4B298D8DF0AA53`.
+- Detection: generated 64-bit script for that exact product and version 0.11.0.
+- System install: existing PowerShell wrapper command, now containing the pinned
+  Intel driver prerequisite and runtime-only MSI.
+
+GitHub Actions does not publish to Intune automatically. Each future binary
+replacement needs its matching detection and uninstall metadata.
+
+The owner recycled the obsolete 40-second payload and its cache; both paths were
+verified absent. The original ten-minute rollback payload and active cache were
+retained. Files in the Recycle Bin may still occupy disk space. Removal of the
+old MSI-owned Whisper payload was verified after the permanent upgrade.
+
+## Installed pilot acceptance
+
+Company Portal synchronization exposed version 0.11.0, dated 2026-11-02. Clicking
+Install completed through the Intune SYSTEM wrapper without a UAC prompt; the
+portal displayed **Installed**. Intune's local action log reported detection
+success and error code 0. The pilot already had Intel driver 32.0.100.5540, which
+was retained. This run therefore validates the current-driver branch, not a new
+driver upgrade or reboot on a colleague's machine.
+
+The permanent MSI registry entry is 0.11.0 at the ProductCode above. The prior
+pilot ProductCode `{637F17D5-5758-426B-A1C6-DD90EBA3E473}` is absent. The installed
+`handy.exe` SHA256 is
+`A3845068CDC70446900A89ECD8384FDA28D1BB3AF8AE27CADFDC3107D8DDDD06`, matching the
+accepted artifact exactly. All 1,120 runtime inventory entries matched size and
+SHA256. The MSI-owned Whisper payload is absent and the user's old downloaded
+model directory is empty. The approved HF payload and active NPU cache remain.
+
+The installed application transcribed the complete 600-second fixture on NPU in
+14.261 seconds, with a 3.547-second cached load, all reference words and the ending
+preserved. Its short mixed-language request passed and oversized input was
+rejected. Settings fingerprints match the pre-upgrade values for shortcut
+bindings, custom words, language, selected model and activation mode; the history
+database remains present. The permanent Program Files application was restarted
+for normal use after acceptance. Removing the installed application was tested
+in CI; it was not uninstalled from the pilot after this successful upgrade.

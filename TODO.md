@@ -18,7 +18,7 @@
 - [x] Validate Nemotron on the real Core Ultra 7 355: cold/warm load, repeated FR/EN, 39.845-second audio and user dictation. Whisper NPU remains unresolved.
 - [ ] Confirm unsigned preview acceptance under target App Control audit policy.
 - [x] Import verified package into Intune and verify optional All Users availability.
-- [ ] Test Company Portal install as standard user, upgrade and removal on the pilot.
+- [x] Test Company Portal installation and upgrade from the normal user session on the pilot (2026-11-02); uninstall validated in CI, not repeated on the working pilot.
 - [ ] Evaluate OpenVINO upgrades against upstream recurrent-state/long-audio issues.
 - [ ] Add release signing when a signing identity is available.
 - [ ] Evaluate live text during capture separately; the ten-minute engine currently processes fragments after recording stops.
@@ -28,7 +28,7 @@
 
 - [x] Inspect live Intune: old Whisper Preview 0.10.0, no dependencies, optional All Users.
 - [x] Implement the approved ten-minute model download, native allowlist and shared financial vocabulary.
-- [ ] Validate 0.11.0 Windows build, clean install, upgrade and installed NPU transcription.
-- [ ] Update the existing optional Intune app with the verified package and exact detection metadata.
-- [ ] Remove retired pilot payloads after successful installed replacement.
+- [x] Validate 0.11.0 Windows build, clean install, upgrade and installed NPU transcription (2026-11-02).
+- [x] Update the existing optional Intune app with the verified package and exact detection metadata (2026-11-02).
+- [x] Remove retired 40-second payload/cache with the owner's intervention and verify MSI upgrade removes the old Whisper model; retain the ten-minute rollback payload (2026-11-02).
 - [x] Publish unchanged FP32 graphs, tokenizer, notices and provenance publicly under Nassau-1; verify anonymous access and pin the immutable revision (2026-11-02).
