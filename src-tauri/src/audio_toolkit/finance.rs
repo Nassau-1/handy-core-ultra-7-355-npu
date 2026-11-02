@@ -55,10 +55,20 @@ pub fn apply_finance_glossary(text: &str, personal_words: &[String]) -> String {
         .regex
         .replace_all(text, |capture: &Captures<'_>| {
             let matched = &capture[0];
-            let canonical = &MATCHER.replacements[&matched.to_lowercase()];
+            let key = matched.to_lowercase();
+            let Some(canonical) = MATCHER.replacements.get(&key) else {
+                // Unicode regex case folding can be broader than lowercase
+                // (e.g. long-s). Preserve unlisted spellings without panicking.
+                return matched.to_string();
+            };
             personal_words
                 .iter()
-                .find(|word| word.to_lowercase() == canonical.to_lowercase())
+                .find(|word| word.to_lowercase() == key)
+                .or_else(|| {
+                    personal_words
+                        .iter()
+                        .find(|word| word.to_lowercase() == canonical.to_lowercase())
+                })
                 .unwrap_or(canonical)
                 .clone()
         })
@@ -105,6 +115,11 @@ mod tests {
         assert_eq!(result, "Ebitda 42, mci");
         assert_eq!(apply_finance_glossary(&result, &words), result);
         assert_eq!(words, ["Ebitda", "MCI"]);
+        assert_eq!(apply_finance_glossary("Nopa", &["Nopa".into()]), "Nopa");
+        assert_eq!(
+            apply_finance_glossary("ſaas et ebitda", &[]),
+            "ſaas et EBITDA"
+        );
     }
 
     #[test]
