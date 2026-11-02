@@ -1,5 +1,36 @@
 # Architecture
 
+## Managed distribution (0.11.0)
+
+The MCI build exposes only the owner-approved ten-minute Nemotron model.
+`packaging/managed-policy.json` is embedded in both the Rust backend and React UI;
+user settings and discovery cannot add models. The shared financial glossary is
+also embedded, with personal spelling taking priority over its exact aliases.
+
+Program Files contains Handy and `resources/npu/worker`, the frozen OpenVINO
+runtime. Weights are downloaded anonymously from the public Nassau-1 Hugging Face
+repository. `managed-model-lock.json` pins an immutable commit and 19 file hashes.
+Downloads resume in a separate staging directory, verify SHA256, then atomically
+finalize into LocalAppData `managed-models/<manifest digest>`. A completion marker
+and expected sizes distinguish a ready payload from an interrupted download.
+
+Five neural graphs execute on NPU with encoder and RNNT state carried across
+fragments, then reset between dictations. The maximum request is 600 seconds;
+the app records first and inserts text after stop. Audio features and token
+control use CPU. There is no silent neural CPU/GPU fallback.
+
+The Intune wrapper installs Intel's signed driver when needed and returns a
+restart-required code without forcing reboot. Worker preflight rejects an old
+driver or a pending same-boot driver update before compiling. Cache compilation
+runs in the user's session, not SYSTEM. See
+[managed distribution decision](decisions/ADR-0004-managed-npu-distribution.md),
+[operations](operations.md) and [validation](verification-2026-11-02.md).
+
+## Earlier preview and pilot implementations
+
+The following describes the earlier 0.10 previews retained in source for history
+and experiments. Their model entries are hidden by the managed build policy.
+
 Handy retains Tauri/Rust, React, microphone/VAD capture, shortcuts and output handling.
 `ModelManager` registers a local, bundled `OpenVinoNpu` model on Windows x64.
 `TranscriptionManager` routes that model directly to `windows_npu.rs`; conventional

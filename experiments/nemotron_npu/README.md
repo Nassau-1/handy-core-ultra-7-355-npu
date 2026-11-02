@@ -1,5 +1,12 @@
 # Nemotron NPU experiment
 
+The 0.11 managed Handy build uses the validated ten-minute FP32 conversion
+published on [Hugging Face](https://huggingface.co/Nassau-1/nemotron-3.5-asr-streaming-0.6b-intel-npu).
+Its production exporter is `production_export.py`; it does not package test
+audio or compiled caches. See [current architecture](../../docs/architecture.md)
+and [validation](../../docs/verification-2026-11-02.md). The earlier optional
+pilot commands and reference comparisons are retained below.
+
 Experimental architecture-specific implementation with an optional local Handy
 pilot. It is not enabled automatically. All neural graphs run on NPU; CPU handles audio preparation,
 token control flow and text decoding.

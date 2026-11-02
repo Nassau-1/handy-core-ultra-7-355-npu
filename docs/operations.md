@@ -36,7 +36,7 @@ snapshot first, then pin its commit in `packaging/managed-model-lock.json`.
 - Empty alias lists are reference vocabulary, not automatic corrections.
   The runtime has no glossary decoder prompt; no fine-tuning is claimed.
 - [Driver lock](../packaging/intel-driver-lock.json): immutable vendor installer.
-- [Model card draft](huggingface-model-card.md): upstream provenance and limits.
+- [Published model card](huggingface-model-card.md): upstream provenance and limits.
 
 ## Existing tenant configuration (read-only inspection, 2026-11-02)
 

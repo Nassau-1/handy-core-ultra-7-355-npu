@@ -31,7 +31,7 @@ explicit and persist across fragments within a request, then reset between
 requests. Device compilation and any execution precision choices are handled
 by OpenVINO and the Intel NPU plugin.
 
-Requires the custom [runtime and export code](https://github.com/Nassau-1/handy-core-ultra-7-355-npu/tree/3fcb6b14e507b5a21c6e15c3df21da820ec0a251/experiments/nemotron_npu).
+Requires the custom [runtime and export code](https://github.com/Nassau-1/handy-core-ultra-7-355-npu/tree/51fa5a29575a4fe06ccbf88200d46fec0a8e01e3/experiments/nemotron_npu).
 This is not a standard `AutoModel` or Optimum checkpoint. Do not upload compiled
 NPU blobs, Windows binaries, test recordings, user caches or private logs as model
 weights. Publish the portable IR, tokenizer/constants, inventory, licenses and

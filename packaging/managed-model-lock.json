@@ -1,7 +1,7 @@
 {
   "model_id": "nemotron-35-npu-ten-minute",
   "repo": "Nassau-1/nemotron-3.5-asr-streaming-0.6b-intel-npu",
-  "revision": "8cdf171b50d033d3d66af82161591496fc230714",
+  "revision": "8b2bb626cd2ba53c6de2f2c41f1ec241d40017e5",
   "storage_precision": "FP32",
   "upstream_repo": "nvidia/nemotron-3.5-asr-streaming-0.6b",
   "upstream_revision": "ea30d66debe3740a08b573244286791d423d6b3e",
