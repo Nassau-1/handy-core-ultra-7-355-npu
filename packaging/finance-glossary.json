@@ -4,158 +4,580 @@
   "terms": [
     {
       "canonical": "EBITDA",
-      "aliases": ["ebitda", "ébitda", "ebit da", "e b i t d a"]
+      "aliases": [
+        "ebitda",
+        "ébitda",
+        "ebit da",
+        "e b i t d a",
+        "bitda",
+        "ebittda",
+        "hbit d'un"
+      ]
     },
-    { "canonical": "EBIT", "aliases": ["ebit", "ébit", "e b i t"] },
-    { "canonical": "EBITA", "aliases": ["ebita", "é b i t a"] },
-    { "canonical": "EBITDAR", "aliases": ["ebitdar", "e b i t d a r"] },
-    { "canonical": "NOPAT", "aliases": ["nopat", "nopate", "n o p a t"] },
-    { "canonical": "NOPLAT", "aliases": ["noplat", "n o p l a t"] },
-    { "canonical": "WACC", "aliases": ["wacc", "w a c c"] },
-    { "canonical": "DCF", "aliases": ["dcf", "d c f"] },
-    { "canonical": "LBO", "aliases": ["lbo", "l b o"] },
-    { "canonical": "MBO", "aliases": ["mbo", "m b o"] },
-    { "canonical": "OBO", "aliases": ["obo", "o b o"] },
-    { "canonical": "M&A", "aliases": ["m&a", "m & a", "m and a", "m et a"] },
-    { "canonical": "CAPEX", "aliases": ["capex", "cap ex"] },
-    { "canonical": "OPEX", "aliases": ["opex", "op ex"] },
-    { "canonical": "FCF", "aliases": ["fcf", "f c f"] },
-    { "canonical": "FCFF", "aliases": ["fcff", "f c f f"] },
-    { "canonical": "FCFE", "aliases": ["fcfe", "f c f e"] },
-    { "canonical": "ROIC", "aliases": ["roic", "r o i c"] },
-    { "canonical": "ROCE", "aliases": ["roce", "r o c e"] },
-    { "canonical": "ROE", "aliases": ["r o e"] },
-    { "canonical": "ROA", "aliases": ["r o a"] },
-    { "canonical": "ROI", "aliases": ["r o i"] },
-    { "canonical": "IRR", "aliases": ["irr", "i r r"] },
-    { "canonical": "TRI", "aliases": ["t r i"] },
-    { "canonical": "MOIC", "aliases": ["moic", "m o i c"] },
-    { "canonical": "TVPI", "aliases": ["tvpi", "t v p i"] },
-    { "canonical": "DPI", "aliases": ["dpi", "d p i"] },
-    { "canonical": "RVPI", "aliases": ["rvpi", "r v p i"] },
-    { "canonical": "BFR", "aliases": ["bfr", "b f r"] },
-    { "canonical": "EBE", "aliases": ["ebe", "e b e"] },
-    { "canonical": "CMPC", "aliases": ["cmpc", "c m p c"] },
-    { "canonical": "VAN", "aliases": ["v a n"] },
-    { "canonical": "NAV", "aliases": ["nav", "n a v"] },
-    { "canonical": "NPV", "aliases": ["npv", "n p v"] },
-    { "canonical": "AUM", "aliases": ["aum", "a u m"] },
-    { "canonical": "AUA", "aliases": ["aua", "a u a"] },
-    { "canonical": "IPO", "aliases": ["ipo", "i p o"] },
-    { "canonical": "SPA", "aliases": ["s p a"] },
-    { "canonical": "SHA", "aliases": ["s h a"] },
-    { "canonical": "NDA", "aliases": ["nda", "n d a"] },
-    { "canonical": "LOI", "aliases": ["l o i"] },
-    { "canonical": "MOU", "aliases": ["m o u"] },
-    { "canonical": "QoE", "aliases": ["qoe", "q o e"] },
-    { "canonical": "VDD", "aliases": ["vdd", "v d d"] },
-    { "canonical": "FDD", "aliases": ["fdd", "f d d"] },
-    { "canonical": "IFRS", "aliases": ["ifrs", "i f r s"] },
-    { "canonical": "GAAP", "aliases": ["gaap", "g a a p"] },
-    { "canonical": "US GAAP", "aliases": ["us gaap", "u s gaap"] },
-    { "canonical": "PCG", "aliases": ["pcg", "p c g"] },
-    { "canonical": "DSCR", "aliases": ["dscr", "d s c r"] },
-    { "canonical": "ICR", "aliases": ["icr", "i c r"] },
-    { "canonical": "LTV", "aliases": ["ltv", "l t v"] },
-    { "canonical": "LTM", "aliases": ["ltm", "l t m"] },
-    { "canonical": "NTM", "aliases": ["ntm", "n t m"] },
-    { "canonical": "TTM", "aliases": ["ttm", "t t m"] },
-    { "canonical": "YTD", "aliases": ["ytd", "y t d"] },
-    { "canonical": "YoY", "aliases": ["yoy", "y o y"] },
-    { "canonical": "QoQ", "aliases": ["qoq", "q o q"] },
-    { "canonical": "CAGR", "aliases": ["cagr", "c a g r"] },
-    { "canonical": "TCAM", "aliases": ["tcam", "t c a m"] },
-    { "canonical": "ARR", "aliases": ["arr", "a r r"] },
-    { "canonical": "MRR", "aliases": ["mrr", "m r r"] },
-    { "canonical": "NRR", "aliases": ["nrr", "n r r"] },
-    { "canonical": "GRR", "aliases": ["grr", "g r r"] },
-    { "canonical": "ARPU", "aliases": ["arpu", "a r p u"] },
-    { "canonical": "ACV", "aliases": ["acv", "a c v"] },
-    { "canonical": "TCV", "aliases": ["tcv", "t c v"] },
-    { "canonical": "SaaS", "aliases": ["saas", "s a a s"] },
-    { "canonical": "KPI", "aliases": ["kpi", "k p i"] },
-    { "canonical": "KYC", "aliases": ["kyc", "k y c"] },
-    { "canonical": "AML", "aliases": ["aml", "a m l"] },
-    { "canonical": "ESG", "aliases": ["esg", "e s g"] },
-    { "canonical": "SFDR", "aliases": ["sfdr", "s f d r"] },
-    { "canonical": "CSRD", "aliases": ["csrd", "c s r d"] },
-    { "canonical": "SICAV", "aliases": ["sicav", "s i c a v"] },
-    { "canonical": "FCPR", "aliases": ["fcpr", "f c p r"] },
-    { "canonical": "FPCI", "aliases": ["fpci", "f p c i"] },
-    { "canonical": "OPCVM", "aliases": ["opcvm", "o p c v m"] },
-    { "canonical": "UCITS", "aliases": ["ucits", "u c i t s"] },
-    { "canonical": "ETF", "aliases": ["etf", "e t f"] },
-    { "canonical": "PIK", "aliases": ["pik", "p i k"] },
-    { "canonical": "RCF", "aliases": ["rcf", "r c f"] },
-    { "canonical": "EURIBOR", "aliases": ["euribor", "euri bor"] },
-    { "canonical": "SOFR", "aliases": ["sofr", "s o f r"] },
-    { "canonical": "OAT", "aliases": ["o a t"] },
-    { "canonical": "BSPCE", "aliases": ["bspce", "b s p c e"] },
-    { "canonical": "BSA", "aliases": ["bsa", "b s a"] },
-    { "canonical": "OC", "aliases": [] },
-    { "canonical": "AGA", "aliases": [] },
-    { "canonical": "DCF inversé", "aliases": ["dcf inverse", "dcf inversé"] },
+    {
+      "canonical": "EBIT",
+      "aliases": ["ebit", "ébit", "e b i t"]
+    },
+    {
+      "canonical": "EBITA",
+      "aliases": ["ebita", "é b i t a"]
+    },
+    {
+      "canonical": "EBITDAR",
+      "aliases": ["ebitdar", "e b i t d a r"]
+    },
+    {
+      "canonical": "NOPAT",
+      "aliases": ["nopat", "nopate", "n o p a t", "nopa", "nopit", "nopet"]
+    },
+    {
+      "canonical": "NOPLAT",
+      "aliases": ["noplat", "n o p l a t"]
+    },
+    {
+      "canonical": "WACC",
+      "aliases": ["wacc", "w a c c"]
+    },
+    {
+      "canonical": "DCF",
+      "aliases": ["dcf", "d c f"]
+    },
+    {
+      "canonical": "LBO",
+      "aliases": ["lbo", "l b o"]
+    },
+    {
+      "canonical": "MBO",
+      "aliases": ["mbo", "m b o"]
+    },
+    {
+      "canonical": "OBO",
+      "aliases": ["obo", "o b o"]
+    },
+    {
+      "canonical": "M&A",
+      "aliases": ["m&a", "m & a", "m and a", "m et a"]
+    },
+    {
+      "canonical": "CAPEX",
+      "aliases": ["capex", "cap ex"]
+    },
+    {
+      "canonical": "OPEX",
+      "aliases": ["opex", "op ex"]
+    },
+    {
+      "canonical": "FCF",
+      "aliases": ["fcf", "f c f"]
+    },
+    {
+      "canonical": "FCFF",
+      "aliases": ["fcff", "f c f f"]
+    },
+    {
+      "canonical": "FCFE",
+      "aliases": ["fcfe", "f c f e"]
+    },
+    {
+      "canonical": "ROIC",
+      "aliases": ["roic", "r o i c"]
+    },
+    {
+      "canonical": "ROCE",
+      "aliases": ["roce", "r o c e"]
+    },
+    {
+      "canonical": "ROE",
+      "aliases": ["r o e"]
+    },
+    {
+      "canonical": "ROA",
+      "aliases": ["r o a"]
+    },
+    {
+      "canonical": "ROI",
+      "aliases": ["r o i"]
+    },
+    {
+      "canonical": "IRR",
+      "aliases": ["irr", "i r r"]
+    },
+    {
+      "canonical": "TRI",
+      "aliases": ["t r i"]
+    },
+    {
+      "canonical": "MOIC",
+      "aliases": ["moic", "m o i c"]
+    },
+    {
+      "canonical": "TVPI",
+      "aliases": ["tvpi", "t v p i"]
+    },
+    {
+      "canonical": "DPI",
+      "aliases": ["dpi", "d p i"]
+    },
+    {
+      "canonical": "RVPI",
+      "aliases": ["rvpi", "r v p i"]
+    },
+    {
+      "canonical": "BFR",
+      "aliases": ["bfr", "b f r"]
+    },
+    {
+      "canonical": "EBE",
+      "aliases": ["ebe", "e b e"]
+    },
+    {
+      "canonical": "CMPC",
+      "aliases": ["cmpc", "c m p c"]
+    },
+    {
+      "canonical": "VAN",
+      "aliases": ["v a n"]
+    },
+    {
+      "canonical": "NAV",
+      "aliases": ["nav", "n a v"]
+    },
+    {
+      "canonical": "NPV",
+      "aliases": ["npv", "n p v"]
+    },
+    {
+      "canonical": "AUM",
+      "aliases": ["aum", "a u m"]
+    },
+    {
+      "canonical": "AUA",
+      "aliases": ["aua", "a u a"]
+    },
+    {
+      "canonical": "IPO",
+      "aliases": ["ipo", "i p o"]
+    },
+    {
+      "canonical": "SPA",
+      "aliases": ["s p a"]
+    },
+    {
+      "canonical": "SHA",
+      "aliases": ["s h a"]
+    },
+    {
+      "canonical": "NDA",
+      "aliases": ["nda", "n d a"]
+    },
+    {
+      "canonical": "LOI",
+      "aliases": ["l o i"]
+    },
+    {
+      "canonical": "MOU",
+      "aliases": ["m o u"]
+    },
+    {
+      "canonical": "QoE",
+      "aliases": ["qoe", "q o e"]
+    },
+    {
+      "canonical": "VDD",
+      "aliases": ["vdd", "v d d"]
+    },
+    {
+      "canonical": "FDD",
+      "aliases": ["fdd", "f d d"]
+    },
+    {
+      "canonical": "IFRS",
+      "aliases": ["ifrs", "i f r s"]
+    },
+    {
+      "canonical": "GAAP",
+      "aliases": ["gaap", "g a a p"]
+    },
+    {
+      "canonical": "US GAAP",
+      "aliases": ["us gaap", "u s gaap"]
+    },
+    {
+      "canonical": "PCG",
+      "aliases": ["pcg", "p c g"]
+    },
+    {
+      "canonical": "DSCR",
+      "aliases": ["dscr", "d s c r"]
+    },
+    {
+      "canonical": "ICR",
+      "aliases": ["icr", "i c r"]
+    },
+    {
+      "canonical": "LTV",
+      "aliases": ["ltv", "l t v"]
+    },
+    {
+      "canonical": "LTM",
+      "aliases": ["ltm", "l t m"]
+    },
+    {
+      "canonical": "NTM",
+      "aliases": ["ntm", "n t m"]
+    },
+    {
+      "canonical": "TTM",
+      "aliases": ["ttm", "t t m"]
+    },
+    {
+      "canonical": "YTD",
+      "aliases": ["ytd", "y t d"]
+    },
+    {
+      "canonical": "YoY",
+      "aliases": ["yoy", "y o y"]
+    },
+    {
+      "canonical": "QoQ",
+      "aliases": ["qoq", "q o q"]
+    },
+    {
+      "canonical": "CAGR",
+      "aliases": ["cagr", "c a g r"]
+    },
+    {
+      "canonical": "TCAM",
+      "aliases": ["tcam", "t c a m"]
+    },
+    {
+      "canonical": "ARR",
+      "aliases": ["arr", "a r r"]
+    },
+    {
+      "canonical": "MRR",
+      "aliases": ["mrr", "m r r"]
+    },
+    {
+      "canonical": "NRR",
+      "aliases": ["nrr", "n r r"]
+    },
+    {
+      "canonical": "GRR",
+      "aliases": ["grr", "g r r"]
+    },
+    {
+      "canonical": "ARPU",
+      "aliases": ["arpu", "a r p u"]
+    },
+    {
+      "canonical": "ACV",
+      "aliases": ["acv", "a c v"]
+    },
+    {
+      "canonical": "TCV",
+      "aliases": ["tcv", "t c v"]
+    },
+    {
+      "canonical": "SaaS",
+      "aliases": ["saas", "s a a s"]
+    },
+    {
+      "canonical": "KPI",
+      "aliases": ["kpi", "k p i"]
+    },
+    {
+      "canonical": "KYC",
+      "aliases": ["kyc", "k y c"]
+    },
+    {
+      "canonical": "AML",
+      "aliases": ["aml", "a m l"]
+    },
+    {
+      "canonical": "ESG",
+      "aliases": ["esg", "e s g"]
+    },
+    {
+      "canonical": "SFDR",
+      "aliases": ["sfdr", "s f d r"]
+    },
+    {
+      "canonical": "CSRD",
+      "aliases": ["csrd", "c s r d"]
+    },
+    {
+      "canonical": "SICAV",
+      "aliases": ["sicav", "s i c a v"]
+    },
+    {
+      "canonical": "FCPR",
+      "aliases": ["fcpr", "f c p r"]
+    },
+    {
+      "canonical": "FPCI",
+      "aliases": ["fpci", "f p c i"]
+    },
+    {
+      "canonical": "OPCVM",
+      "aliases": ["opcvm", "o p c v m"]
+    },
+    {
+      "canonical": "UCITS",
+      "aliases": ["ucits", "u c i t s"]
+    },
+    {
+      "canonical": "ETF",
+      "aliases": ["etf", "e t f"]
+    },
+    {
+      "canonical": "PIK",
+      "aliases": ["pik", "p i k"]
+    },
+    {
+      "canonical": "RCF",
+      "aliases": ["rcf", "r c f"]
+    },
+    {
+      "canonical": "EURIBOR",
+      "aliases": ["euribor", "euri bor"]
+    },
+    {
+      "canonical": "SOFR",
+      "aliases": ["sofr", "s o f r"]
+    },
+    {
+      "canonical": "OAT",
+      "aliases": ["o a t"]
+    },
+    {
+      "canonical": "BSPCE",
+      "aliases": ["bspce", "b s p c e"]
+    },
+    {
+      "canonical": "BSA",
+      "aliases": ["bsa", "b s a"]
+    },
+    {
+      "canonical": "OC",
+      "aliases": []
+    },
+    {
+      "canonical": "AGA",
+      "aliases": []
+    },
+    {
+      "canonical": "DCF inversé",
+      "aliases": ["dcf inverse", "dcf inversé"]
+    },
     {
       "canonical": "free cash flow",
       "aliases": ["free cash-flow", "free cashflow"]
     },
-    { "canonical": "cash flow", "aliases": ["cash-flow", "cashflow"] },
-    { "canonical": "cash conversion", "aliases": [] },
-    { "canonical": "working capital", "aliases": [] },
-    { "canonical": "net debt", "aliases": [] },
-    { "canonical": "enterprise value", "aliases": [] },
-    { "canonical": "equity value", "aliases": [] },
-    { "canonical": "discounted cash flow", "aliases": [] },
-    { "canonical": "weighted average cost of capital", "aliases": [] },
-    { "canonical": "net operating profit after tax", "aliases": [] },
-    { "canonical": "return on invested capital", "aliases": [] },
-    { "canonical": "leveraged buyout", "aliases": ["leveraged buy-out"] },
-    { "canonical": "private equity", "aliases": [] },
-    { "canonical": "private debt", "aliases": [] },
-    { "canonical": "venture capital", "aliases": [] },
-    { "canonical": "growth equity", "aliases": [] },
-    { "canonical": "carried interest", "aliases": [] },
-    { "canonical": "hurdle rate", "aliases": [] },
-    { "canonical": "high-water mark", "aliases": ["high water mark"] },
-    { "canonical": "waterfall", "aliases": [] },
-    { "canonical": "clawback", "aliases": ["claw-back"] },
-    { "canonical": "catch-up", "aliases": [] },
-    { "canonical": "earn-out", "aliases": ["earnout"] },
-    { "canonical": "locked box", "aliases": ["locked-box"] },
-    { "canonical": "completion accounts", "aliases": [] },
-    { "canonical": "due diligence", "aliases": [] },
-    { "canonical": "vendor due diligence", "aliases": [] },
-    { "canonical": "quality of earnings", "aliases": [] },
-    { "canonical": "purchase price allocation", "aliases": [] },
-    { "canonical": "purchase price adjustment", "aliases": [] },
-    { "canonical": "share purchase agreement", "aliases": [] },
-    { "canonical": "shareholders' agreement", "aliases": [] },
-    { "canonical": "term sheet", "aliases": [] },
-    { "canonical": "data room", "aliases": ["dataroom"] },
-    { "canonical": "build-up", "aliases": ["buildup"] },
-    { "canonical": "add-on", "aliases": [] },
-    { "canonical": "carve-out", "aliases": ["carveout"] },
-    { "canonical": "covenant", "aliases": [] },
-    { "canonical": "covenant-lite", "aliases": ["covenant lite"] },
-    { "canonical": "unitranche", "aliases": ["uni tranche"] },
-    { "canonical": "mezzanine", "aliases": [] },
-    { "canonical": "senior secured", "aliases": [] },
-    { "canonical": "second lien", "aliases": [] },
-    { "canonical": "cash sweep", "aliases": [] },
-    { "canonical": "equity cure", "aliases": [] },
-    { "canonical": "basis points", "aliases": [] },
+    {
+      "canonical": "cash flow",
+      "aliases": ["cash-flow", "cashflow"]
+    },
+    {
+      "canonical": "cash conversion",
+      "aliases": []
+    },
+    {
+      "canonical": "working capital",
+      "aliases": []
+    },
+    {
+      "canonical": "net debt",
+      "aliases": []
+    },
+    {
+      "canonical": "enterprise value",
+      "aliases": []
+    },
+    {
+      "canonical": "equity value",
+      "aliases": []
+    },
+    {
+      "canonical": "discounted cash flow",
+      "aliases": []
+    },
+    {
+      "canonical": "weighted average cost of capital",
+      "aliases": []
+    },
+    {
+      "canonical": "net operating profit after tax",
+      "aliases": []
+    },
+    {
+      "canonical": "return on invested capital",
+      "aliases": []
+    },
+    {
+      "canonical": "leveraged buyout",
+      "aliases": ["leveraged buy-out"]
+    },
+    {
+      "canonical": "private equity",
+      "aliases": []
+    },
+    {
+      "canonical": "private debt",
+      "aliases": []
+    },
+    {
+      "canonical": "venture capital",
+      "aliases": []
+    },
+    {
+      "canonical": "growth equity",
+      "aliases": []
+    },
+    {
+      "canonical": "carried interest",
+      "aliases": []
+    },
+    {
+      "canonical": "hurdle rate",
+      "aliases": []
+    },
+    {
+      "canonical": "high-water mark",
+      "aliases": ["high water mark"]
+    },
+    {
+      "canonical": "waterfall",
+      "aliases": []
+    },
+    {
+      "canonical": "clawback",
+      "aliases": ["claw-back"]
+    },
+    {
+      "canonical": "catch-up",
+      "aliases": []
+    },
+    {
+      "canonical": "earn-out",
+      "aliases": ["earnout"]
+    },
+    {
+      "canonical": "locked box",
+      "aliases": ["locked-box"]
+    },
+    {
+      "canonical": "completion accounts",
+      "aliases": []
+    },
+    {
+      "canonical": "due diligence",
+      "aliases": []
+    },
+    {
+      "canonical": "vendor due diligence",
+      "aliases": []
+    },
+    {
+      "canonical": "quality of earnings",
+      "aliases": []
+    },
+    {
+      "canonical": "purchase price allocation",
+      "aliases": []
+    },
+    {
+      "canonical": "purchase price adjustment",
+      "aliases": []
+    },
+    {
+      "canonical": "share purchase agreement",
+      "aliases": []
+    },
+    {
+      "canonical": "shareholders' agreement",
+      "aliases": []
+    },
+    {
+      "canonical": "term sheet",
+      "aliases": []
+    },
+    {
+      "canonical": "data room",
+      "aliases": ["dataroom"]
+    },
+    {
+      "canonical": "build-up",
+      "aliases": ["buildup"]
+    },
+    {
+      "canonical": "add-on",
+      "aliases": []
+    },
+    {
+      "canonical": "carve-out",
+      "aliases": ["carveout"]
+    },
+    {
+      "canonical": "covenant",
+      "aliases": []
+    },
+    {
+      "canonical": "covenant-lite",
+      "aliases": ["covenant lite"]
+    },
+    {
+      "canonical": "unitranche",
+      "aliases": ["uni tranche"]
+    },
+    {
+      "canonical": "mezzanine",
+      "aliases": []
+    },
+    {
+      "canonical": "senior secured",
+      "aliases": []
+    },
+    {
+      "canonical": "second lien",
+      "aliases": []
+    },
+    {
+      "canonical": "cash sweep",
+      "aliases": []
+    },
+    {
+      "canonical": "equity cure",
+      "aliases": []
+    },
+    {
+      "canonical": "basis points",
+      "aliases": []
+    },
     {
       "canonical": "besoin en fonds de roulement",
       "aliases": ["besoin en fond de roulement"]
     },
-    { "canonical": "fonds de roulement", "aliases": ["fond de roulement"] },
+    {
+      "canonical": "fonds de roulement",
+      "aliases": ["fond de roulement"]
+    },
     {
       "canonical": "flux de trésorerie disponible",
       "aliases": ["flux de tresorerie disponible"]
     },
-    { "canonical": "dette nette", "aliases": [] },
-    { "canonical": "valeur d'entreprise", "aliases": [] },
-    { "canonical": "valeur des capitaux propres", "aliases": [] },
+    {
+      "canonical": "dette nette",
+      "aliases": []
+    },
+    {
+      "canonical": "valeur d'entreprise",
+      "aliases": []
+    },
+    {
+      "canonical": "valeur des capitaux propres",
+      "aliases": []
+    },
     {
       "canonical": "coût moyen pondéré du capital",
       "aliases": ["cout moyen pondere du capital"]
@@ -164,7 +586,10 @@
       "canonical": "taux de rentabilité interne",
       "aliases": ["taux de rentabilite interne"]
     },
-    { "canonical": "valeur actuelle nette", "aliases": [] },
+    {
+      "canonical": "valeur actuelle nette",
+      "aliases": []
+    },
     {
       "canonical": "excédent brut d'exploitation",
       "aliases": ["excedent brut d'exploitation"]
@@ -177,32 +602,81 @@
       "canonical": "résultat d'exploitation",
       "aliases": ["resultat d'exploitation"]
     },
-    { "canonical": "résultat net", "aliases": ["resultat net"] },
-    { "canonical": "chiffre d'affaires", "aliases": [] },
-    { "canonical": "capitaux propres", "aliases": [] },
-    { "canonical": "effet de levier", "aliases": [] },
-    { "canonical": "multiple de valorisation", "aliases": [] },
+    {
+      "canonical": "résultat net",
+      "aliases": ["resultat net"]
+    },
+    {
+      "canonical": "chiffre d'affaires",
+      "aliases": []
+    },
+    {
+      "canonical": "capitaux propres",
+      "aliases": []
+    },
+    {
+      "canonical": "effet de levier",
+      "aliases": []
+    },
+    {
+      "canonical": "multiple de valorisation",
+      "aliases": []
+    },
     {
       "canonical": "capital-investissement",
       "aliases": ["capital investissement"]
     },
-    { "canonical": "capital-risque", "aliases": ["capital risque"] },
+    {
+      "canonical": "capital-risque",
+      "aliases": ["capital risque"]
+    },
     {
       "canonical": "capital-développement",
       "aliases": ["capital developpement", "capital développement"]
     },
-    { "canonical": "fusion-acquisition", "aliases": ["fusion acquisition"] },
+    {
+      "canonical": "fusion-acquisition",
+      "aliases": ["fusion acquisition"]
+    },
     {
       "canonical": "fusions-acquisitions",
       "aliases": ["fusions acquisitions"]
     },
-    { "canonical": "complément de prix", "aliases": ["complement de prix"] },
-    { "canonical": "garantie d'actif et de passif", "aliases": [] },
-    { "canonical": "pacte d'actionnaires", "aliases": [] },
-    { "canonical": "dette subordonnée", "aliases": ["dette subordonnee"] },
-    { "canonical": "dette senior", "aliases": [] },
-    { "canonical": "obligations convertibles", "aliases": [] },
-    { "canonical": "points de base", "aliases": [] },
-    { "canonical": "création de valeur", "aliases": ["creation de valeur"] }
+    {
+      "canonical": "complément de prix",
+      "aliases": ["complement de prix"]
+    },
+    {
+      "canonical": "garantie d'actif et de passif",
+      "aliases": []
+    },
+    {
+      "canonical": "pacte d'actionnaires",
+      "aliases": []
+    },
+    {
+      "canonical": "dette subordonnée",
+      "aliases": ["dette subordonnee"]
+    },
+    {
+      "canonical": "dette senior",
+      "aliases": []
+    },
+    {
+      "canonical": "obligations convertibles",
+      "aliases": []
+    },
+    {
+      "canonical": "points de base",
+      "aliases": []
+    },
+    {
+      "canonical": "création de valeur",
+      "aliases": ["creation de valeur"]
+    },
+    {
+      "canonical": "TRI cible",
+      "aliases": ["tri cible"]
+    }
   ]
 }

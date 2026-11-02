@@ -108,6 +108,26 @@ mod tests {
     }
 
     #[test]
+    fn observed_npu_financial_aliases_and_ambiguous_tri() {
+        assert_eq!(apply_finance_glossary("Notre bitda atteint douze virgule cinq millions; le nopa progresse. Trois fois hbit d'un.", &[]),
+            "Notre EBITDA atteint douze virgule cinq millions; le NOPAT progresse. Trois fois EBITDA.");
+        assert_eq!(
+            apply_finance_glossary(
+                "The EBITTDA margin. Nopit is eight million. The Nopet and the free cash flow.",
+                &[]
+            ),
+            "The EBITDA margin. NOPAT is eight million. The NOPAT and the free cash flow."
+        );
+        assert_eq!(
+            apply_finance_glossary(
+                "Le tri cible est quinze pour cent. Le tri des déchets continue.",
+                &[]
+            ),
+            "Le TRI cible est quinze pour cent. Le tri des déchets continue."
+        );
+    }
+
+    #[test]
     fn ten_minute_sized_text_preserves_numbers() {
         let input = "Ebitda 12,5 millions; nopat 8.25. Ordinary words stay intact.\n".repeat(250);
         let expected =
