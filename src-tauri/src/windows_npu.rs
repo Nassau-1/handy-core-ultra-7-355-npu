@@ -195,13 +195,17 @@ impl Worker {
         } else {
             resources.join("resources/npu/worker/handy-npu-worker.exe")
         };
-        if !exe.is_file()
-            || !(if nemotron {
-                nemotron_available_for(app, model_id)
-            } else {
-                bundled_model_available(app)
-            })
-        {
+        if !exe.is_file() {
+            return Err("NPU runtime missing. Repair Handy from Company Portal.".into());
+        }
+        if !(if nemotron {
+            nemotron_available_for(app, model_id)
+        } else {
+            bundled_model_available(app)
+        }) {
+            if crate::managed::enabled() {
+                return Err("The approved model is missing or incomplete. Open Handy and download it from the model setup screen.".into());
+            }
             return Err(
                 "Bundled NPU runtime/model missing. Repair the installation from Company Portal."
                     .into(),

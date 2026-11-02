@@ -31,6 +31,7 @@ import { useSettings } from "./hooks/useSettings";
 import { useSettingsStore } from "./stores/settingsStore";
 import { commands } from "@/bindings";
 import { getLanguageDirection, initializeRTL } from "@/lib/utils/rtl";
+import managedPolicy from "../packaging/managed-policy.json";
 
 type OnboardingStep = "accessibility" | "model" | "done";
 
@@ -230,10 +231,22 @@ function App() {
         settingsResult.status === "ok" &&
         settingsResult.data.onboarding_completed === true;
       const currentPlatform = platform();
+      let needsManagedDownload = false;
+      if (managedPolicy.managed) {
+        const available = await commands.getAvailableModels();
+        needsManagedDownload =
+          available.status !== "ok" ||
+          !available.data.some(
+            (model) =>
+              model.id === managedPolicy.default_model && model.is_downloaded,
+          );
+      }
 
       if (hasCompletedOnboarding) {
         // Returning user - check if they need to grant permissions first
-        setIsReturningUser(true);
+        // An upgrade can retire their old model. Continue to the approved
+        // download after permissions without resetting any personal settings.
+        setIsReturningUser(!needsManagedDownload);
 
         if (currentPlatform === "macos") {
           try {
@@ -270,7 +283,7 @@ function App() {
           }
         }
 
-        setOnboardingStep("done");
+        setOnboardingStep(needsManagedDownload ? "model" : "done");
       } else {
         // New user - start full onboarding
         setIsReturningUser(false);
